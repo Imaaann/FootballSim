@@ -16,7 +16,7 @@ void Handle_New_Game() {
 int main() {
 
     char command;
-    printf("============\nWelcome to the football simulator\n============\n");
+    printf("============\nWelcome to the football simulator ('h' to open help menu)\n============\n");
     do {
     printf("Enter a command\n");
     scanf("%s",&command);
