@@ -1,18 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-    struct team {
-        char name[64];
-        int pts;
-    };
-
-void Handle_New_Game() {
-    int participantsNum;
-    printf("How many teams are there in this championship\n");
-    scanf("%d",&participantsNum);
-}
-
-
 int main() {
 
     char command;
@@ -23,10 +11,12 @@ int main() {
     switch (command) {
     case 'n':
         printf("\n======\nStarting a new game\n======\n");
-        Handle_New_Game();
         break;
     case 'f':
         printf("\nYou have forwarded the game to the next day\n");
+        char* teams[] = {"TeamA", "TeamB", "TeamC", "TeamD"};
+        int numTeams = sizeof(teams) / sizeof(teams[0]);
+	    teamfight(teams, numTeams);
         break;
     case 's':
         printf("\nYou have saved today's matches in a new file\n");
@@ -47,4 +37,3 @@ int main() {
     } while (command != 'q');
 return 0;
 }
-
