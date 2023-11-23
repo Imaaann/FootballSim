@@ -14,9 +14,6 @@ int main() {
         break;
     case 'f':
         printf("\nYou have forwarded the game to the next day\n");
-        char* teams[] = {"TeamA", "TeamB", "TeamC", "TeamD"};
-        int numTeams = sizeof(teams) / sizeof(teams[0]);
-	    teamfight(teams, numTeams);
         break;
     case 's':
         printf("\nYou have saved today's matches in a new file\n");
