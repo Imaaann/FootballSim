@@ -12,7 +12,7 @@ typedef struct team{
     // ... stuff
     struct team *next;
 } team;
-
+// test
 team * hash_Table[MAX_TABLE_SIZE];
 
 void initHashTable();

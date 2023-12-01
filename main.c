@@ -93,10 +93,10 @@ int main() {
         printf("Invalid command\n");
     }
     } while (command != 'q');
+
+system("Pause");
 return 0;
 }
-
-
 
 void printHashTable() {
     printf("New Hash Table Print\n");
@@ -137,17 +137,25 @@ void handleNewGame() {
     printf("Enter the number of teams to play:\n");
     scanf("%d",&numTeams);
 
-    char Teams[numTeams+1][MAX_NAME];
+    team Teams[numTeams+1];
     char name[MAX_NAME];
     int trash;
     for (int i=0; i<numTeams;i++) {
         printf("Enter the name for the %d team\n",i+1);
-        if (i==0) scanf(" %[1]d",&trash);
-        fgets(name,64,stdin);
+        scanf(" %[1]d",&trash);
+        scanf("%[^\n]s", name);
         printf("You entered %s",name);
-        strncpy(Teams[i],name,64);
+        strncpy(Teams[i].name,name,64);
     }
+
+    for (int i=0;i<numTeams;i++) {
+        hashTableInsert(&Teams[i]);
+    }
+
+    printHashTable();
+
 }
+
 
 
 int hashTableInsert(team *p) {
@@ -191,4 +199,10 @@ team* hashTableDelete(char* name) {
         prv -> next = tmp -> next; // delete node at tmp by pushing the pointers away from it
     } 
     return tmp;
+}
+
+void initHashTable() {
+    for (int i = 0; i<MAX_TABLE_SIZE; i++) {
+        hash_Table[i] = NULL;
+    }
 }
