@@ -56,7 +56,7 @@
     team* hashTableDelete(char* name);
     //Command functions
     void handleNewGame();
-
+    //ttt
 
     team * hash_Table[MAX_TABLE_SIZE];
 
