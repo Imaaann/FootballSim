@@ -3,7 +3,7 @@
 #include <string.h>
 #include <stdint.h>
 
-#define MAX_NAME 256
+#define MAX_NAME 64
 #define MAX_TABLE_SIZE 10
 
 typedef struct team{
