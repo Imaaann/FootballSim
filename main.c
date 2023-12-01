@@ -98,6 +98,8 @@ system("Pause");
 return 0;
 }
 
+
+
 void printHashTable() {
     printf("New Hash Table Print\n");
     for (int i = 0; i<MAX_TABLE_SIZE; i++) {
@@ -129,6 +131,8 @@ unsigned int hash(char* name) {
     return hashValue;
 }
 
+
+
 void handleNewGame() {
 
     initHashTable();
@@ -143,10 +147,25 @@ void handleNewGame() {
     for (int i=0; i<numTeams;i++) {
         printf("Enter the name for the %d team\n",i+1);
         scanf(" %[1]d",&trash);
-        scanf("%[^\n]s", name);
-        printf("You entered %s",name);
+        scanf("%[^\n]s",name);
         strncpy(Teams[i].name,name,64);
     }
+    for (int i=0; i<numTeams; i++) {
+        printf("Enter the name of the goalkeeper for team %s\n",Teams[i].name);
+        scanf(" %[1]d",&trash);
+        scanf("%[^\n]s",Teams[i].goalkeeper.name);
+        printf("Enter the diving of the goalerkeeper : ");
+        do {
+            scanf("%d",&Teams[i].goalkeeper.div);
+        } while(Teams[i].goalkeeper.div >= 100 || Teams[i].goalkeeper.div < 0);
+        for (int j=0;j<11;j++) {
+            printf("Enter the name for the %d player of %s\n",j,Teams[i].name);
+            scanf(" %[1]d",&trash);
+            scanf("%[^\n]s",Teams[i].players[j].name);
+        }
+
+    }
+
 
     for (int i=0;i<numTeams;i++) {
         hashTableInsert(&Teams[i]);
@@ -200,6 +219,8 @@ team* hashTableDelete(char* name) {
     } 
     return tmp;
 }
+
+
 
 void initHashTable() {
     for (int i = 0; i<MAX_TABLE_SIZE; i++) {
