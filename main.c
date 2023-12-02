@@ -5,6 +5,7 @@
 
 #define MAX_NAME 64
 #define MAX_TABLE_SIZE 64
+    char* positions []={"Right Back","Left Back","Center Back","Center Back","Central Defensive Midfielder","Right Winger","Right Centre Midfielder","Striker","Left Centre Midfielder","Left Winger"};
     typedef struct {
         char name[MAX_NAME];
         // stats
@@ -56,7 +57,7 @@
     team* hashTableDelete(char* name);
     //Command functions
     void handleNewGame();
-    //ttt
+    
 
     team * hash_Table[MAX_TABLE_SIZE];
 
@@ -158,10 +159,86 @@ void handleNewGame() {
         do {
             scanf("%d",&Teams[i].goalkeeper.div);
         } while(Teams[i].goalkeeper.div >= 100 || Teams[i].goalkeeper.div < 0);
+
+
+        printf("Enter the handling of the goalerkeeper : ");
+        do {
+            scanf("%d",&Teams[i].goalkeeper.hand);
+        } while(Teams[i].goalkeeper.hand >= 100 || Teams[i].goalkeeper.hand < 0);
+
+
+        printf("Enter the kicking of the goalerkeeper : ");
+        do {
+            scanf("%d",&Teams[i].goalkeeper.kick);
+        } while(Teams[i].goalkeeper.kick >= 100 || Teams[i].goalkeeper.kick < 0);
+
+
+        printf("Enter the reflexes of the goalerkeeper : ");
+        do {
+            scanf("%d",&Teams[i].goalkeeper.reflex);
+        } while(Teams[i].goalkeeper.reflex >= 100 || Teams[i].goalkeeper.reflex < 0);
+
+
+        printf("Enter the speed of the goalerkeeper : ");
+        do {
+            scanf("%d",&Teams[i].goalkeeper.speed);
+        } while(Teams[i].goalkeeper.speed >= 100 || Teams[i].goalkeeper.speed < 0);
+
+
+        printf("Enter the positioning of the goalerkeeper : ");
+        do {
+            scanf("%d",&Teams[i].goalkeeper.position);
+        } while(Teams[i].goalkeeper.position >= 100 || Teams[i].goalkeeper.position < 0);
+
+        Teams[i].goalkeeper.Overall=(Teams[i].goalkeeper.div+Teams[i].goalkeeper.hand+Teams[i].goalkeeper.kick+Teams[i].goalkeeper.reflex+Teams[i].goalkeeper.speed+Teams[i].goalkeeper.position)/6;
+        printf("the overall power of the goalkeeper %s is: %d\n",Teams[i].goalkeeper.name,Teams[i].goalkeeper.Overall);
+
+
+
+
         for (int j=0;j<11;j++) {
-            printf("Enter the name for the %d player of %s\n",j,Teams[i].name);
+            printf("Enter the name for the %s for team %s\n",positions[j],Teams[i].name);
             scanf(" %[1]d",&trash);
             scanf("%[^\n]s",Teams[i].players[j].name);
+
+            printf("Enter the pace of the player %s : ",Teams[i].players[j].name);
+            do {
+                scanf("%d",&Teams[i].players[j].pace);
+            } while(Teams[i].players[j].pace >= 100 || Teams[i].players[j].pace < 0);
+
+            
+            printf("Enter the pass of the player %s : ",Teams[i].players[j].name);
+            do {
+                scanf("%d",&Teams[i].players[j].pass);
+            } while(Teams[i].players[j].pass >= 100 || Teams[i].players[j].pass < 0);
+
+
+            printf("Enter the dribble of the player %s : ",Teams[i].players[j].name);
+            do {
+                scanf("%d",&Teams[i].players[j].dribble);
+            } while(Teams[i].players[j].dribble >= 100 || Teams[i].players[j].dribble < 0);
+
+
+            printf("Enter the defend of the player %s : ",Teams[i].players[j].name);
+            do {
+                scanf("%d",&Teams[i].players[j].defend);
+            } while(Teams[i].players[j].defend >= 100 || Teams[i].players[j].defend < 0);
+
+
+            printf("Enter the shooting of the player %s : ",Teams[i].players[j].name);
+            do {
+                scanf("%d",&Teams[i].players[j].shoot);
+            } while(Teams[i].players[j].shoot >= 100 || Teams[i].players[j].shoot < 0);
+
+
+            printf("Enter the physic of the player %s : ",Teams[i].players[j].name);
+            do {
+                scanf("%d",&Teams[i].players[j].physique);
+            } while(Teams[i].players[j].physique >= 100 || Teams[i].players[j].physique < 0);
+
+            Teams[i].players[j].Overall=(Teams[i].players[j].pace+Teams[i].players[j].pass+Teams[i].players[j].physique+Teams[i].players[j].shoot+Teams[i].players[j].defend+Teams[i].players[j].dribble)/6;
+        printf("the overall power of the player %s is: %d\n",Teams[i].players[j].name,Teams[i].players[j].Overall);
+
         }
 
     }
