@@ -362,24 +362,24 @@ double calcWeight(team* Team) {
         // PartialWeight Cus the equation would be TOO LONG
         double DefWeight = 0;
         double CMDWeight = 0;
-        double WingerWeight = 0;
+        double MiddleWeight = 0;
         double AttackerWeight = 0;
 
         for (int i=0; i<4; i++) {
             DefWeight = DefWeight + ((Team -> players[i].pace) + (Team -> players[i].defend) + (Team -> players[i].physique)  + (Team -> players[i].Overall))/4;
         }
         
-        CMDWeight = ((Team -> players[4].pace) + (Team -> players[4].dribble) + (Team -> players[4].pass)  + (Team -> players[4].Overall) + (Team -> players[4].defend))/5;
-
-        for (int i=5; i<7; i++) {
-            WingerWeight = WingerWeight + ((Team -> players[i].dribble) + (Team -> players[i].pass) + (Team -> players[i].Overall)  + ((Team -> players[i].defend) + (Team -> players[i].physique) +  (Team -> players[i].shoot))/3)/4;
+        CMDWeight = ((Team -> players[4].dribble) + (Team -> players[4].pass)  + (Team -> players[4].Overall) + ((Team -> players[4].defend)+(Team -> players[4].physique)+(Team -> players[4].shoot))/3)/4;
+        // the middle players numbers are 8 and 10 
+        for (int i=6; i<9; i=i+2) {
+            MiddleWeight = MiddleWeight + ((Team -> players[i].dribble) + (Team -> players[i].pass) + (Team -> players[i].Overall)  + ((Team -> players[i].defend) + (Team -> players[i].physique) +  (Team -> players[i].shoot))/3)/4;
         }
-
-        for (int i=7; i<10; i++) {
+        // the attack players numbers are 7 , 9 and 11
+        for (int i=5; i<10; i=i+2) {
             AttackerWeight = AttackerWeight + ((Team -> players[i].pace) + (Team -> players[i].dribble) + (Team -> players[i].shoot)  + (Team -> players[i].Overall) + ((Team -> players[i].pass) + (Team -> players[i].physique))/2)/5;
         }
 
-        Weight = (DefWeight + CMDWeight + WingerWeight + AttackerWeight + (Team -> goalkeeper.Overall))/5;
+        Weight = (DefWeight + CMDWeight + MiddleWeight + AttackerWeight + (Team -> goalkeeper.Overall))/11;
         
         return Weight;
     }
