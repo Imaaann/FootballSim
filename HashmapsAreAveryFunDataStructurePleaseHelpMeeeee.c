@@ -21,6 +21,8 @@ unsigned int hash(char* name);
 int hashTableInsert(team *p);
 team* hashTableLookup(char* name);
 team* hashTableDelete(char* name);
+void hashTableCopy(team* teamArr[]);
+void printArr(team* Arr[], int n);
 
 
 
@@ -52,11 +54,11 @@ int main() {
 
     // lookup test
     printf("Looking for Mouad");
-    team*  tmp =  hashTableLookup("Mouad");
+    team*  tmp =  hashTableLookup("Ymak");
     if (tmp != NULL) {
-        printf("We found %s\n", tmp -> name);
+        printf("\nWe found %s\n", tmp -> name);
     } else {
-        printf("No one found\n");
+        printf("\nNo one found\n");
     }
     printf("Done \n");
 
@@ -71,8 +73,13 @@ int main() {
     }
     printf("Done \n");
 
-    char c;
-    scanf("%c",&c);
+    // Copy & Print test;
+    team* Arr[MAX_TABLE_SIZE];
+    hashTableCopy(Arr);
+    printArr(Arr,5);
+
+    printf("\n");
+    system("Pause");
     return 0;
 }
 
@@ -160,4 +167,27 @@ team* hashTableDelete(char* name) {
         prv -> next = tmp -> next; // delete node at tmp by pushing the pointers away from it
     } 
     return tmp;
+}
+
+void hashTableCopy(team* teamArr[]) {
+    int j=0;
+    for (int i = 0; i<MAX_TABLE_SIZE; i++) {
+        if (hash_Table[i] != NULL) {
+            team* tmp = hash_Table[i];
+            while (tmp != NULL) {
+                teamArr[j] = tmp;
+                j++;
+                tmp = tmp -> next;
+            }
+        }
+    }
+}
+
+
+void printArr(team* Arr[], int n) {
+    printf("[");
+    for (int i=0; i<(n-1); i++) {
+        printf("%s ,", Arr[i]->name);
+    }
+    printf("%s]", Arr[n-1]->name);
 }

@@ -5,7 +5,10 @@
 
 #define MAX_NAME 64
 #define MAX_TABLE_SIZE 64
-    char* positions []={"Right Back","Left Back","Center Back","Center Back","Central Defensive Midfielder","Right Winger","Right Centre Midfielder","Striker","Left Centre Midfielder","Left Winger"};
+
+    char* positions[] ={"Right Back","Left Back","Center Back","Center Back","Central Defensive Midfielder","Right Winger","Right Centre Midfielder","Striker","Left Centre Midfielder","Left Winger"};
+
+
     typedef struct {
         char name[MAX_NAME];
         // stats
@@ -47,6 +50,9 @@
     } team; 
 
     //Utilities
+    double calcWeight(team* Team);
+    void printArr(team* Arr[], int n);
+
 
     //hashTable related functions
     void initHashTable();
@@ -55,14 +61,20 @@
     int hashTableInsert(team *p);
     team* hashTableLookup(char* name);
     team* hashTableDelete(char* name);
+
+
     //Command functions
     void handleNewGame();
-    
+    void handleNext(int RoundNum);
 
+
+
+    // hash table initialisation
     team * hash_Table[MAX_TABLE_SIZE];
+    int TeamNum;
 
 int main() {
-
+    int RoundNum = 0;
     char command;
     printf("============\nWelcome to the football simulator ('h' to open help menu)\n============\n");
     do {
@@ -76,6 +88,8 @@ int main() {
         break;
     case 'f':
         printf("\nYou have forwarded the game to the next day\n");
+        handleNext(RoundNum);
+        RoundNum++;
         break;
     case 's':
         printf("\nYou have saved today's matches in a new file\n");
@@ -99,7 +113,7 @@ system("Pause");
 return 0;
 }
 
-
+// hash table functions -- START
 
 void printHashTable() {
     printf("New Hash Table Print\n");
@@ -110,7 +124,7 @@ void printHashTable() {
             printf("\t%i\t-",i);
             team* tmp = hash_Table[i];
             while (tmp != NULL) {
-                printf("%s -", tmp -> name);
+                printf("%s (Weight: %f) -", tmp -> name, tmp -> weight);
                 tmp = tmp -> next;
             }
             printf("\n");
@@ -120,6 +134,19 @@ void printHashTable() {
 }
 
 
+
+// should only be called after handleNewGame()
+void hashTableCopy(team* teamArr[]) {
+    for (int i = 0; i<MAX_TABLE_SIZE; i++) {
+        if (hash_Table[i] != NULL) {
+            team* tmp = hash_Table[i];
+            while (tmp != NULL) {
+                teamArr[i] = tmp;
+                tmp = tmp -> next;
+            }
+        }
+    }
+}
 
 unsigned int hash(char* name) {
     int strLength = strnlen(name, MAX_NAME);
@@ -134,6 +161,63 @@ unsigned int hash(char* name) {
 
 
 
+int hashTableInsert(team *p) {
+    if (p == NULL) {
+        return 0;
+    }
+    int index = hash(p -> name);
+    p -> next = hash_Table[index];
+    hash_Table[index] = p;
+    return 1;
+} 
+
+
+
+team* hashTableLookup(char* name) {
+    int index = hash(name);
+    team *tmp = hash_Table[index];
+    while (tmp != NULL && strncmp(tmp -> name, name, MAX_NAME) != 0) 
+    {
+        tmp = tmp -> next;
+    }
+    return tmp;
+}
+
+
+
+team* hashTableDelete(char* name) {
+    int index = hash(name);
+    team* tmp = hash_Table[index];
+    team* prv = NULL;
+    while (tmp != NULL && strncmp(tmp -> name, name, MAX_NAME) != 0) 
+    {
+        prv = tmp;
+        tmp = tmp -> next;
+    }
+    if (tmp == NULL) return NULL;
+    if (prv == NULL) {
+        // delete head of linked list by pushing the next on in the linked list to the first
+        hash_Table[index] = tmp -> next;
+    } else {
+        prv -> next = tmp -> next; // delete node at tmp by pushing the pointers away from it
+    } 
+    return tmp;
+}
+
+
+
+void initHashTable() {
+    for (int i = 0; i<MAX_TABLE_SIZE; i++) {
+        hash_Table[i] = NULL;
+    }
+}
+
+// hash table functions -- END
+
+
+
+// Command Function -- START 
+
 void handleNewGame() {
 
     initHashTable();
@@ -141,6 +225,7 @@ void handleNewGame() {
     int numTeams;
     printf("Enter the number of teams to play:\n");
     scanf("%d",&numTeams);
+    TeamNum  = numTeams;
 
     team Teams[numTeams+1];
     char name[MAX_NAME];
@@ -196,7 +281,7 @@ void handleNewGame() {
 
 
 
-        for (int j=0;j<11;j++) {
+        for (int j=0;j<10;j++) {
             printf("Enter the name for the %s for team %s\n",positions[j],Teams[i].name);
             scanf(" %[1]d",&trash);
             scanf("%[^\n]s",Teams[i].players[j].name);
@@ -231,7 +316,7 @@ void handleNewGame() {
             } while(Teams[i].players[j].shoot >= 100 || Teams[i].players[j].shoot < 0);
 
 
-            printf("Enter the physic of the player %s : ",Teams[i].players[j].name);
+            printf("Enter the physique of the player %s : ",Teams[i].players[j].name);
             do {
                 scanf("%d",&Teams[i].players[j].physique);
             } while(Teams[i].players[j].physique >= 100 || Teams[i].players[j].physique < 0);
@@ -245,6 +330,7 @@ void handleNewGame() {
 
 
     for (int i=0;i<numTeams;i++) {
+        Teams[i].weight = calcWeight(&Teams[i]);
         hashTableInsert(&Teams[i]);
     }
 
@@ -254,53 +340,56 @@ void handleNewGame() {
 
 
 
-int hashTableInsert(team *p) {
-    if (p == NULL) {
+void handleNext(int RoundNum) {
+    team* teamArr[TeamNum+5];
+    hashTableCopy(teamArr);
+    printArr(teamArr,TeamNum);
+}
+
+// Command Functions -- END
+
+
+
+// Other functions -- START
+
+double calcWeight(team* Team) {
+    if (Team == NULL) {
         return 0;
-    }
-    int index = hash(p -> name);
-    p -> next = hash_Table[index];
-    hash_Table[index] = p;
-    return 1;
-} 
-
-
-
-team* hashTableLookup(char* name) {
-    int index = hash(name);
-    team *tmp = hash_Table[index];
-    while (tmp != NULL && strncmp(tmp -> name, name, MAX_NAME) != 0) 
-    {
-        tmp = tmp -> next;
-    }
-    return tmp;
-}
-
-
-
-team* hashTableDelete(char* name) {
-    int index = hash(name);
-    team* tmp = hash_Table[index];
-    team* prv = NULL;
-    while (tmp != NULL && strncmp(tmp -> name, name, MAX_NAME) != 0) 
-    {
-        prv = tmp;
-        tmp = tmp -> next;
-    }
-    if (tmp == NULL) return NULL;
-    if (prv == NULL) {
-        // delete head of linked list by pushing the next on in the linked list to the first
-        hash_Table[index] = tmp -> next;
     } else {
-        prv -> next = tmp -> next; // delete node at tmp by pushing the pointers away from it
-    } 
-    return tmp;
-}
+        double Weight;
+        // PartialWeight Cus the equation would be TOO LONG
+        double DefWeight = 0;
+        double CMDWeight = 0;
+        double WingerWeight = 0;
+        double AttackerWeight = 0;
 
+        for (int i=0; i<4; i++) {
+            DefWeight = DefWeight + ((Team -> players[i].pace) + (Team -> players[i].defend) + (Team -> players[i].physique)  + (Team -> players[i].Overall))/4;
+        }
+        
+        CMDWeight = ((Team -> players[4].pace) + (Team -> players[4].dribble) + (Team -> players[4].pass)  + (Team -> players[4].Overall) + (Team -> players[4].defend))/5;
 
+        for (int i=5; i<7; i++) {
+            WingerWeight = WingerWeight + ((Team -> players[i].dribble) + (Team -> players[i].pass) + (Team -> players[i].Overall)  + ((Team -> players[i].defend) + (Team -> players[i].physique) +  (Team -> players[i].shoot))/3)/4;
+        }
 
-void initHashTable() {
-    for (int i = 0; i<MAX_TABLE_SIZE; i++) {
-        hash_Table[i] = NULL;
+        for (int i=7; i<10; i++) {
+            AttackerWeight = AttackerWeight + ((Team -> players[i].pace) + (Team -> players[i].dribble) + (Team -> players[i].shoot)  + (Team -> players[i].Overall) + ((Team -> players[i].pass) + (Team -> players[i].physique))/2)/5;
+        }
+
+        Weight = (DefWeight + CMDWeight + WingerWeight + AttackerWeight + (Team -> goalkeeper.Overall))/5;
+        
+        return Weight;
     }
 }
+
+void printArr(team* Arr[], int n) {
+    printf("[");
+    for (int i=0; i<(n-1); i++) {
+        printf("%s ,", Arr[i] -> name );
+    }
+    printf("%s]", Arr[n-1] -> name);
+}
+
+
+// other functions - END
