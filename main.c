@@ -137,11 +137,13 @@ void printHashTable() {
 
 // should only be called after handleNewGame()
 void hashTableCopy(team* teamArr[]) {
+    int j=0;
     for (int i = 0; i<MAX_TABLE_SIZE; i++) {
         if (hash_Table[i] != NULL) {
             team* tmp = hash_Table[i];
             while (tmp != NULL) {
-                teamArr[i] = tmp;
+                teamArr[j] = tmp;
+                j++;
                 tmp = tmp -> next;
             }
         }
