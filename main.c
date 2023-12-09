@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <time.h>
 
 #define MAX_NAME 64
 #define MAX_TABLE_SIZE 64
@@ -52,7 +53,7 @@
     //Utilities
     double calcWeight(team* Team);
     void printArr(team* Arr[], int n);
-
+    int unweightedRNG(int min,int max);
 
     //hashTable related functions
     void initHashTable();
@@ -63,9 +64,14 @@
     team* hashTableDelete(char* name);
 
 
-    //Command functions
+    //user related functions
     void handleNewGame();
+    int randomStatInput();
+    void manualInput(team Teams[]);
+    void systimaticInput(team Teams[]);
+    void fairInput(team Teams[]);
     void handleNext(int RoundNum);
+
 
 
 
@@ -74,6 +80,7 @@
     int TeamNum;
 
 int main() {
+    srand(time(NULL));
     int RoundNum = 0;
     char command;
     printf("============\nWelcome to the football simulator ('h' to open help menu)\n============\n");
@@ -149,6 +156,8 @@ void hashTableCopy(team* teamArr[]) {
         }
     }
 }
+
+
 
 unsigned int hash(char* name) {
     int strLength = strnlen(name, MAX_NAME);
@@ -238,41 +247,98 @@ void handleNewGame() {
         scanf("%[^\n]s",name);
         strncpy(Teams[i].name,name,64);
     }
-    for (int i=0; i<numTeams; i++) {
+
+    int randomStat = randomStatInput();
+    switch (randomStat) {
+        case 0:
+        manualInput(Teams);
+        break;
+        case 1:
+        systimaticInput(Teams);
+        break;
+        case 2:
+        fairInput(Teams);
+        break;
+    }
+
+
+    for (int i=0;i<numTeams;i++) {
+        Teams[i].weight = calcWeight(&Teams[i]);
+        hashTableInsert(&Teams[i]);
+    }
+
+    printHashTable();
+
+}
+
+
+
+void handleNext(int RoundNum) {
+    team* teamArr[TeamNum+5];
+    hashTableCopy(teamArr);
+    printArr(teamArr,TeamNum);
+}
+
+
+
+int randomStatInput() {
+    char r;
+    char r1;
+    printf("do u want to fill the stats randomly? ('h' for help):\n");
+    do {
+        scanf("%s",&r);
+        char r1 = (char) r; 
+        switch (r1) {
+            case 'y':
+            return 1;
+            case 'n':
+            return 0;
+            case 'f':
+            return 2;
+            default:
+            printf("There is 3 commands:\n1- 'y' fills stats randomly \n2- 'n' asks you to fill it manually \n3- 'f' fills all the stats equally to 50\n");
+        }
+    } while (1);
+}
+
+void manualInput(team Teams[]) {
+    int trash;
+    // Goalkeeper stats
+    for (int i=0; i<TeamNum; i++) {
         printf("Enter the name of the goalkeeper for team %s\n",Teams[i].name);
         scanf(" %[1]d",&trash);
         scanf("%[^\n]s",Teams[i].goalkeeper.name);
-        printf("Enter the diving of the goalerkeeper : ");
+        printf("Enter the diving of the goalkeeper : ");
         do {
             scanf("%d",&Teams[i].goalkeeper.div);
         } while(Teams[i].goalkeeper.div >= 100 || Teams[i].goalkeeper.div < 0);
 
 
-        printf("Enter the handling of the goalerkeeper : ");
+        printf("Enter the handling of the goalkeeper : ");
         do {
             scanf("%d",&Teams[i].goalkeeper.hand);
         } while(Teams[i].goalkeeper.hand >= 100 || Teams[i].goalkeeper.hand < 0);
 
 
-        printf("Enter the kicking of the goalerkeeper : ");
+        printf("Enter the kicking of the goalkeeper : ");
         do {
             scanf("%d",&Teams[i].goalkeeper.kick);
         } while(Teams[i].goalkeeper.kick >= 100 || Teams[i].goalkeeper.kick < 0);
 
 
-        printf("Enter the reflexes of the goalerkeeper : ");
+        printf("Enter the reflexes of the goalkeeper : ");
         do {
             scanf("%d",&Teams[i].goalkeeper.reflex);
         } while(Teams[i].goalkeeper.reflex >= 100 || Teams[i].goalkeeper.reflex < 0);
 
 
-        printf("Enter the speed of the goalerkeeper : ");
+        printf("Enter the speed of the goalkeeper : ");
         do {
             scanf("%d",&Teams[i].goalkeeper.speed);
         } while(Teams[i].goalkeeper.speed >= 100 || Teams[i].goalkeeper.speed < 0);
 
 
-        printf("Enter the positioning of the goalerkeeper : ");
+        printf("Enter the positioning of the goalkeeper : ");
         do {
             scanf("%d",&Teams[i].goalkeeper.position);
         } while(Teams[i].goalkeeper.position >= 100 || Teams[i].goalkeeper.position < 0);
@@ -280,10 +346,8 @@ void handleNewGame() {
         Teams[i].goalkeeper.Overall=(Teams[i].goalkeeper.div+Teams[i].goalkeeper.hand+Teams[i].goalkeeper.kick+Teams[i].goalkeeper.reflex+Teams[i].goalkeeper.speed+Teams[i].goalkeeper.position)/6;
         printf("the overall power of the goalkeeper %s is: %d\n",Teams[i].goalkeeper.name,Teams[i].goalkeeper.Overall);
 
-
-
-
         for (int j=0;j<10;j++) {
+
             printf("Enter the name for the %s for team %s\n",positions[j],Teams[i].name);
             scanf(" %[1]d",&trash);
             scanf("%[^\n]s",Teams[i].players[j].name);
@@ -324,29 +388,80 @@ void handleNewGame() {
             } while(Teams[i].players[j].physique >= 100 || Teams[i].players[j].physique < 0);
 
             Teams[i].players[j].Overall=(Teams[i].players[j].pace+Teams[i].players[j].pass+Teams[i].players[j].physique+Teams[i].players[j].shoot+Teams[i].players[j].defend+Teams[i].players[j].dribble)/6;
-        printf("the overall power of the player %s is: %d\n",Teams[i].players[j].name,Teams[i].players[j].Overall);
+            printf("the overall power of the player %s is: %d\n",Teams[i].players[j].name,Teams[i].players[j].Overall);
 
         }
-
     }
-
-
-    for (int i=0;i<numTeams;i++) {
-        Teams[i].weight = calcWeight(&Teams[i]);
-        hashTableInsert(&Teams[i]);
-    }
-
-    printHashTable();
-
 }
 
+void systimaticInput(team Teams[]) {
+    int trash;
+    // Goalkeeper stats
+    for (int i=0; i<TeamNum; i++) {
+        printf("Enter the name of the goalkeeper for team %s\n",Teams[i].name);
+        scanf(" %[1]d",&trash);
+        scanf("%[^\n]s",Teams[i].goalkeeper.name);
 
+        Teams[i].goalkeeper.div= unweightedRNG(1,99);
+        Teams[i].goalkeeper.hand= unweightedRNG(1,99);
+        Teams[i].goalkeeper.kick= unweightedRNG(1,99);
+        Teams[i].goalkeeper.reflex= unweightedRNG(1,99);
+        Teams[i].goalkeeper.speed= unweightedRNG(1,99);
+        Teams[i].goalkeeper.position= unweightedRNG(1,99);
+        Teams[i].goalkeeper.Overall=(Teams[i].goalkeeper.div+Teams[i].goalkeeper.hand+Teams[i].goalkeeper.kick+Teams[i].goalkeeper.reflex+Teams[i].goalkeeper.speed+Teams[i].goalkeeper.position)/6;
+        
+        printf("the overall power of the goalkeeper %s is: %d\n",Teams[i].goalkeeper.name,Teams[i].goalkeeper.Overall);
 
-void handleNext(int RoundNum) {
-    team* teamArr[TeamNum+5];
-    hashTableCopy(teamArr);
-    printArr(teamArr,TeamNum);
+        for (int j=0;j<10;j++) {
+            printf("Enter the name for the %s for team %s\n",positions[j],Teams[i].name);
+            scanf(" %[1]d",&trash);
+            scanf("%[^\n]s",Teams[i].players[j].name);
+
+            Teams[i].players[j].pace= unweightedRNG(1,99);
+            Teams[i].players[j].pass= unweightedRNG(1,99);
+            Teams[i].players[j].shoot= unweightedRNG(1,99);
+            Teams[i].players[j].dribble= unweightedRNG(1,99);
+            Teams[i].players[j].defend= unweightedRNG(1,99);
+            Teams[i].players[j].physique= unweightedRNG(1,99);
+            Teams[i].players[j].Overall=(Teams[i].players[j].pace+Teams[i].players[j].pass+Teams[i].players[j].physique+Teams[i].players[j].shoot+Teams[i].players[j].defend+Teams[i].players[j].dribble)/6;
+
+            printf("the overall power of the player %s is: %d\n",Teams[i].players[j].name,Teams[i].players[j].Overall);
+        }
+    }
 }
+
+void fairInput(team Teams[]) {
+    int trash;
+    // Goalkeeper stats
+    for (int i=0; i<TeamNum; i++) {
+        printf("Enter the name of the goalkeeper for team %s\n",Teams[i].name);
+        scanf(" %[1]d",&trash);
+        scanf("%[^\n]s",Teams[i].goalkeeper.name);
+
+        Teams[i].goalkeeper.div= 50;
+        Teams[i].goalkeeper.hand= 50;
+        Teams[i].goalkeeper.kick= 50;
+        Teams[i].goalkeeper.reflex= 50;
+        Teams[i].goalkeeper.speed= 50;
+        Teams[i].goalkeeper.position= 50;
+        Teams[i].goalkeeper.Overall=(Teams[i].goalkeeper.div+Teams[i].goalkeeper.hand+Teams[i].goalkeeper.kick+Teams[i].goalkeeper.reflex+Teams[i].goalkeeper.speed+Teams[i].goalkeeper.position)/6;
+
+        for (int j=0;j<10;j++) {
+            printf("Enter the name for the %s for team %s\n",positions[j],Teams[i].name);
+            scanf(" %[1]d",&trash);
+            scanf("%[^\n]s",Teams[i].players[j].name);
+
+            Teams[i].players[j].pace= 50;
+            Teams[i].players[j].pass= 50;
+            Teams[i].players[j].shoot= 50;
+            Teams[i].players[j].dribble= 50;
+            Teams[i].players[j].defend= 50;
+            Teams[i].players[j].physique= 50;
+            Teams[i].players[j].Overall=(Teams[i].players[j].pace+Teams[i].players[j].pass+Teams[i].players[j].physique+Teams[i].players[j].shoot+Teams[i].players[j].defend+Teams[i].players[j].dribble)/6;
+        }
+    }
+}
+
 
 // Command Functions -- END
 
@@ -374,7 +489,7 @@ double calcWeight(team* Team) {
         for (int i=6; i<9; i=i+2) {
             MiddleWeight = MiddleWeight + ((Team -> players[i].dribble) + (Team -> players[i].pass) + (Team -> players[i].Overall)  + ((Team -> players[i].defend) + (Team -> players[i].physique) +  (Team -> players[i].shoot))/3)/4;
         }
-        // the attack players numbers are 7 , 9 and 11
+        // the attack players numbers are 5 , 7 and 9
         for (int i=5; i<10; i=i+2) {
             AttackerWeight = AttackerWeight + ((Team -> players[i].pace) + (Team -> players[i].dribble) + (Team -> players[i].shoot)  + (Team -> players[i].Overall) + ((Team -> players[i].pass) + (Team -> players[i].physique))/2)/5;
         }
@@ -391,6 +506,10 @@ void printArr(team* Arr[], int n) {
         printf("%s ,", Arr[i] -> name );
     }
     printf("%s]", Arr[n-1] -> name);
+}
+
+int unweightedRNG(int min,int max) {
+    return ((rand()%(max-min+1))+min);
 }
 
 
