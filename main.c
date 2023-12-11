@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <time.h>
+#include <ctype.h>
 
 #define MAX_NAME 64
 #define MAX_TABLE_SIZE 64
@@ -50,10 +51,13 @@
         goaler goalkeeper;
     } team; 
 
+    team Dummy; // Dummy Team :)
+
     //Utilities
     double calcWeight(team* Team);
     void printArr(team* Arr[], int n);
     int unweightedRNG(int min,int max);
+    team* dummyFactory();
 
     //hashTable related functions
     void initHashTable();
@@ -70,51 +74,24 @@
     void manualInput(team Teams[]);
     void systimaticInput(team Teams[]);
     void fairInput(team Teams[]);
-    void handleNext(int RoundNum);
+    void handleNext();
+    char getCommand();
 
 
 
-
-    // hash table initialisation
+    // hash table initialisation / global variables
     team * hash_Table[MAX_TABLE_SIZE];
-    int TeamNum;
+    int numTeams;
+    char leagueName[MAX_NAME];
 
 int main() {
     srand(time(NULL));
-    int RoundNum = 0;
     char command;
     printf("============\nWelcome to the football simulator ('h' to open help menu)\n============\n");
     do {
-    printf("Enter a command\n");
-    scanf("%s",&command);
-    char command1 = (char) command; 
-    switch (command1) {
-    case 'n':
-        printf("\n======\nStarting a new game\n======\n");
-        handleNewGame();
-        break;
-    case 'f':
-        printf("\nYou have forwarded the game to the next day\n");
-        handleNext(RoundNum);
-        RoundNum++;
-        break;
-    case 's':
-        printf("\nYou have saved today's matches in a new file\n");
-        break;
-    case 'l':
-        printf("\nYou have printed the leaderboards as of day %d\n",0);
-        break;
-    case 'q':
-        printf("\nThanks for using my application!\n");
-        break;
-    case 'h':
-        printf("============\nWelcome to the football simulator help page\n============\nHere is the list of the possible commands:\n");
-        printf("new (n): Will start a new game and all data about the previous games will get ovverriden\nforward (f): Will continue the simulation and move it to the next day\nsave (s): Will save the matches of the day in a new file located in the logs folder of the project\nleaderboards (l): Will display the leaderboards as of the current time in the championship\nquit (q): Will quit the program and all data will be lost\nhelp (h): Will take you to this menu\n");
-        break;
-    default:
-        printf("Invalid command\n");
-    }
-    } while (command != 'q');
+    command = getCommand();
+    } while(command !=  'q');
+
 
 system("Pause");
 return 0;
@@ -230,17 +207,19 @@ void initHashTable() {
 // Command Function -- START 
 
 void handleNewGame() {
-
-    initHashTable();
-
-    int numTeams;
-    printf("Enter the number of teams to play:\n");
-    scanf("%d",&numTeams);
-    TeamNum  = numTeams;
-
-    team Teams[numTeams+1];
     char name[MAX_NAME];
     int trash;
+    initHashTable();
+
+    printf("Enter the title of the league\n");
+    scanf(" %[1]d",&trash);
+    scanf("%[^\n]s",name);
+    strncpy(leagueName,name,64);
+
+    printf("Enter the number of teams to play:\n");
+    scanf("%d",&numTeams);
+    team Teams[numTeams+1];
+
     for (int i=0; i<numTeams;i++) {
         printf("Enter the name for the %d team\n",i+1);
         scanf(" %[1]d",&trash);
@@ -268,15 +247,22 @@ void handleNewGame() {
     }
 
     printHashTable();
+    //getCommand();
 
 }
 
 
 
-void handleNext(int RoundNum) {
-    team* teamArr[TeamNum+5];
+void handleNext() {
+    team* teamArr[numTeams+5];
     hashTableCopy(teamArr);
-    printArr(teamArr,TeamNum);
+    if (numTeams % 2 != 0) {
+    teamArr[numTeams] = dummyFactory();
+    numTeams++;
+    }
+    
+    printArr(teamArr,numTeams);
+
 }
 
 
@@ -304,7 +290,7 @@ int randomStatInput() {
 void manualInput(team Teams[]) {
     int trash;
     // Goalkeeper stats
-    for (int i=0; i<TeamNum; i++) {
+    for (int i=0; i<numTeams; i++) {
         printf("Enter the name of the goalkeeper for team %s\n",Teams[i].name);
         scanf(" %[1]d",&trash);
         scanf("%[^\n]s",Teams[i].goalkeeper.name);
@@ -397,7 +383,7 @@ void manualInput(team Teams[]) {
 void systimaticInput(team Teams[]) {
     int trash;
     // Goalkeeper stats
-    for (int i=0; i<TeamNum; i++) {
+    for (int i=0; i<numTeams; i++) {
         printf("Enter the name of the goalkeeper for team %s\n",Teams[i].name);
         scanf(" %[1]d",&trash);
         scanf("%[^\n]s",Teams[i].goalkeeper.name);
@@ -433,7 +419,7 @@ void systimaticInput(team Teams[]) {
 void fairInput(team Teams[]) {
     int trash;
     // Goalkeeper stats
-    for (int i=0; i<TeamNum; i++) {
+    for (int i=0; i<numTeams; i++) {
         printf("Enter the name of the goalkeeper for team %s\n",Teams[i].name);
         scanf(" %[1]d",&trash);
         scanf("%[^\n]s",Teams[i].goalkeeper.name);
@@ -462,7 +448,36 @@ void fairInput(team Teams[]) {
     }
 }
 
-
+char getCommand() {
+    char command;
+    printf("Enter a command\n");
+    scanf("%s",&command);
+    char command1 = (char) command; 
+    switch (tolower(command1)) {
+    case 'n':
+        printf("\n======\nStarting a new game\n======\n");
+        handleNewGame();
+        break;
+    case 'f':
+        printf("\nYou have forwarded the game to the next day\n");
+        handleNext();
+        break;
+    case 's':
+        printf("\nYou have saved today's matches in a new file\n");
+        break;
+    case 'l':
+        printf("\nYou have printed the leaderboards as of day %d\n",0);
+        break;
+    case 'q':
+        printf("\nThanks for using my application!\n");
+        break;
+    default :
+        printf("============\nWelcome to the football simulator help page\n============\nHere is the list of the possible commands:\n");
+        printf("new (n): Will start a new game and all data about the previous games will get ovverriden\nforward (f): Will continue the simulation and move it to the next day\nsave (s): Will save the matches of the day in a new file located in the logs folder of the project\nleaderboards (l): Will display the leaderboards as of the current time in the championship\nquit (q): Will quit the program and all data will be lost\nhelp (h): Will take you to this menu\n");
+        break;
+    }
+    return tolower(command1);
+}
 // Command Functions -- END
 
 
@@ -512,5 +527,9 @@ int unweightedRNG(int min,int max) {
     return ((rand()%(max-min+1))+min);
 }
 
+team* dummyFactory() {
+    strncpy(Dummy.name,"Dummy",MAX_NAME);
+    return &Dummy;
+}
 
 // other functions - END
