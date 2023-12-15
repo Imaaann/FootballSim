@@ -37,7 +37,7 @@
 
     } goaler; // defends from the goals :skull:
     
-    typedef struct team{
+    typedef struct team{ // ~1108 bytes
         char name[MAX_NAME];
         int pts;
         float weight;
@@ -58,6 +58,7 @@
     void printArr(team* Arr[], int n);
     int unweightedRNG(int min,int max);
     team* dummyFactory();
+    void strnLower(char* str);
 
     //hashTable related functions
     void initHashTable();
@@ -74,17 +75,20 @@
     void manualInput(team Teams[]);
     void systimaticInput(team Teams[]);
     void fairInput(team Teams[]);
-    void handleNext();
+    void* handleNext();
     char getCommand();
+    int getNextCommand();
 
 
 
     // hash table initialisation / global variables
     team * hash_Table[MAX_TABLE_SIZE];
     int numTeams;
+    int isInGame;
     char leagueName[MAX_NAME];
 
 int main() {
+    isInGame = 0;
     srand(time(NULL));
     char command;
     printf("============\nWelcome to the football simulator ('h' to open help menu)\n============\n");
@@ -93,8 +97,8 @@ int main() {
     } while(command !=  'q');
 
 
-system("Pause");
-return 0;
+    system("Pause");
+    return 0;
 }
 
 // hash table functions -- START
@@ -117,9 +121,7 @@ void printHashTable() {
     printf("End of hash Table Print\n");
 }
 
-
-
-// should only be called after handleNewGame()
+// should only be called after handleNewGame() will return an empty array if called before 
 void hashTableCopy(team* teamArr[]) {
     int j=0;
     for (int i = 0; i<MAX_TABLE_SIZE; i++) {
@@ -134,8 +136,6 @@ void hashTableCopy(team* teamArr[]) {
     }
 }
 
-
-
 unsigned int hash(char* name) {
     int strLength = strnlen(name, MAX_NAME);
     unsigned int hashValue = 0;
@@ -147,8 +147,6 @@ unsigned int hash(char* name) {
     return hashValue;
 }
 
-
-
 int hashTableInsert(team *p) {
     if (p == NULL) {
         return 0;
@@ -159,8 +157,6 @@ int hashTableInsert(team *p) {
     return 1;
 } 
 
-
-
 team* hashTableLookup(char* name) {
     int index = hash(name);
     team *tmp = hash_Table[index];
@@ -170,8 +166,6 @@ team* hashTableLookup(char* name) {
     }
     return tmp;
 }
-
-
 
 team* hashTableDelete(char* name) {
     int index = hash(name);
@@ -191,8 +185,6 @@ team* hashTableDelete(char* name) {
     } 
     return tmp;
 }
-
-
 
 void initHashTable() {
     for (int i = 0; i<MAX_TABLE_SIZE; i++) {
@@ -215,6 +207,7 @@ void handleNewGame() {
     scanf(" %[1]d",&trash);
     scanf("%[^\n]s",name);
     strncpy(leagueName,name,64);
+    isInGame = 1;
 
     printf("Enter the number of teams to play:\n");
     scanf("%d",&numTeams);
@@ -224,6 +217,7 @@ void handleNewGame() {
         printf("Enter the name for the %d team\n",i+1);
         scanf(" %[1]d",&trash);
         scanf("%[^\n]s",name);
+        strnLower(name);
         strncpy(Teams[i].name,name,64);
     }
 
@@ -242,30 +236,58 @@ void handleNewGame() {
 
 
     for (int i=0;i<numTeams;i++) {
+        Teams[i].pts = 0;
         Teams[i].weight = calcWeight(&Teams[i]);
         hashTableInsert(&Teams[i]);
     }
 
+    printf("\n");
+    system("cls");
     printHashTable();
-    //getCommand();
-
 }
 
-
-
-void handleNext() {
+void* handleNext() {
     team* teamArr[numTeams+5];
     hashTableCopy(teamArr);
     if (numTeams % 2 != 0) {
     teamArr[numTeams] = dummyFactory();
     numTeams++;
     }
-    
-    printArr(teamArr,numTeams);
+    int rounds = numTeams - 1;
+    int roundNum = 1;
+    while(roundNum <= rounds) {
+        printf("Round %d:\n", roundNum);
+        for (int i = 0; i < numTeams / 2; i++) {
+            team* team1 = teamArr[i];
+            team* team2 = teamArr[numTeams - 1 - i];
+            if (strncmp(team1->name,"Dummy",MAX_NAME) != 0 && strncmp(team2->name,"Dummy",MAX_NAME)) {
+                printf("%s vs %s\n", team1->name, team2->name);
+                // gameplay starts here
+            }
+        }
+        team* temp = teamArr[1];
+        for (int i = 1; i < numTeams - 1; i++) {
+            teamArr[i] = teamArr[i + 1];
+        }
+        teamArr[numTeams - 1] = temp;
+
+        int nextCommand = getNextCommand();
+        switch (nextCommand) {
+            case 0:
+            roundNum++;
+            break;
+            case 1:
+            // handleLeaderBoard
+            roundNum++;
+            case 2:
+            // handleSave
+            roundNum++;
+            case -1:
+            return NULL;
+        }
+    }
 
 }
-
-
 
 int randomStatInput() {
     char r;
@@ -455,11 +477,9 @@ char getCommand() {
     char command1 = (char) command; 
     switch (tolower(command1)) {
     case 'n':
-        printf("\n======\nStarting a new game\n======\n");
         handleNewGame();
         break;
-    case 'f':
-        printf("\nYou have forwarded the game to the next day\n");
+    case 'b':
         handleNext();
         break;
     case 's':
@@ -472,11 +492,37 @@ char getCommand() {
         printf("\nThanks for using my application!\n");
         break;
     default :
-        printf("============\nWelcome to the football simulator help page\n============\nHere is the list of the possible commands:\n");
-        printf("new (n): Will start a new game and all data about the previous games will get ovverriden\nforward (f): Will continue the simulation and move it to the next day\nsave (s): Will save the matches of the day in a new file located in the logs folder of the project\nleaderboards (l): Will display the leaderboards as of the current time in the championship\nquit (q): Will quit the program and all data will be lost\nhelp (h): Will take you to this menu\n");
+        printf("=========================================================================================");
+        printf("\nWelcome to the football simulator help page\nHere is the list of the possible commands:\n");
+        printf("=========================================================================================\n");
+        printf("new (n): Will start a new game and all data about the previous games will get ovverriden\nbegin (b): Will start the simulation and move it to the next day\nsave (s): Will save the matches of the day in a new file located in the logs folder of the project\nleaderboards (l): Will display the leaderboards as of the current time in the championship\nquit (q): Will quit the program and all data will be lost\nhelp (h): Will take you to this menu\n");
         break;
     }
     return tolower(command1);
+}
+
+int getNextCommand() {
+    char r;
+    char r1;
+    printf("=====================================================\n");
+    printf("do u want to progress to next round ? ('h' for help):\n");
+    printf("=====================================================\n");
+    do {
+        scanf("%s",&r);
+        char r1 = (char) r; 
+        switch (r1) {
+            case 'y':
+            return 0;
+            case 'l':
+            return 1;
+            case 's':
+            return 2;
+            case 'q':
+            return -1;
+            default:
+            printf("There is 3 commands:\n1- 'y' send you to the next round \n2- 'l' shows you the leaderboards \n3- 's' saves this round to a log file\n4- 'q' quits the simulation\n");
+        }
+    } while (1);
 }
 // Command Functions -- END
 
@@ -530,6 +576,13 @@ int unweightedRNG(int min,int max) {
 team* dummyFactory() {
     strncpy(Dummy.name,"Dummy",MAX_NAME);
     return &Dummy;
+}
+
+void strnLower(char* str) {
+    int length = strlen(str);
+    for (int i=0; i<length; i++) {
+        str[i] = tolower(str[i]);
+    }
 }
 
 // other functions - END
