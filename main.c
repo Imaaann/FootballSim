@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <time.h>
 #include <ctype.h>
+#include <math.h>
 
 #define MAX_NAME 64
 #define MAX_TABLE_SIZE 64
@@ -45,20 +46,23 @@
         int defeats;
         int goalsScored;
         int goalsConceded;
-        //test
-        struct team *next;
         player players[10];
         goaler goalkeeper;
+        struct team* next;
     } team; 
 
     team Dummy; // Dummy Team :)
 
-    //Utilities
+    //Other functions
     double calcWeight(team* Team);
     void printArr(team* Arr[], int n);
     int unweightedRNG(int min,int max);
     team* dummyFactory();
     void strnLower(char* str);
+    void simulate(team* Team1, team* Team2);
+    double calcMidWeight(team* Team);
+    double calcAttackWeight(team* Team);
+    int processAttack(int Attack, int Defense);
 
     //hashTable related functions
     void initHashTable();
@@ -86,6 +90,7 @@
     int numTeams;
     int isInGame;
     char leagueName[MAX_NAME];
+    char CH;
 
 int main() {
     isInGame = 0;
@@ -94,6 +99,7 @@ int main() {
     printf("============\nWelcome to the football simulator ('h' to open help menu)\n============\n");
     do {
     command = getCommand();
+    CH = getchar();
     } while(command !=  'q');
 
 
@@ -124,14 +130,18 @@ void printHashTable() {
 // should only be called after handleNewGame() will return an empty array if called before 
 void hashTableCopy(team* teamArr[]) {
     int j=0;
+    team* tmp = NULL;
     for (int i = 0; i<MAX_TABLE_SIZE; i++) {
         if (hash_Table[i] != NULL) {
             team* tmp = hash_Table[i];
             while (tmp != NULL) {
+                if (j<= numTeams) {
                 teamArr[j] = tmp;
                 j++;
-                tmp = tmp -> next;
+                }
+                tmp = tmp->next;
             }
+            tmp = NULL;
         }
     }
 }
@@ -247,6 +257,7 @@ void handleNewGame() {
 }
 
 void* handleNext() {
+    int nextCommand;
     team* teamArr[numTeams+5];
     hashTableCopy(teamArr);
     if (numTeams % 2 != 0) {
@@ -262,6 +273,7 @@ void* handleNext() {
             team* team2 = teamArr[numTeams - 1 - i];
             if (strncmp(team1->name,"Dummy",MAX_NAME) != 0 && strncmp(team2->name,"Dummy",MAX_NAME)) {
                 printf("%s vs %s\n", team1->name, team2->name);
+                simulate(team1,team2);
                 // gameplay starts here
             }
         }
@@ -271,7 +283,10 @@ void* handleNext() {
         }
         teamArr[numTeams - 1] = temp;
 
-        int nextCommand = getNextCommand();
+        if (roundNum != rounds) {
+        nextCommand = getNextCommand();
+        CH = getchar();
+        }
         switch (nextCommand) {
             case 0:
             roundNum++;
@@ -482,21 +497,20 @@ char getCommand() {
     case 'b':
         handleNext();
         break;
-    case 's':
-        printf("\nYou have saved today's matches in a new file\n");
-        break;
     case 'l':
         printf("\nYou have printed the leaderboards as of day %d\n",0);
         break;
     case 'q':
         printf("\nThanks for using my application!\n");
         break;
-    default :
+    case 'h' :
         printf("=========================================================================================");
         printf("\nWelcome to the football simulator help page\nHere is the list of the possible commands:\n");
         printf("=========================================================================================\n");
-        printf("new (n): Will start a new game and all data about the previous games will get ovverriden\nbegin (b): Will start the simulation and move it to the next day\nsave (s): Will save the matches of the day in a new file located in the logs folder of the project\nleaderboards (l): Will display the leaderboards as of the current time in the championship\nquit (q): Will quit the program and all data will be lost\nhelp (h): Will take you to this menu\n");
+        printf("new (n): Will start a new game and all data about the previous games will get ovverriden\nbegin (b): Will start the simulation and move it to the next day\nleaderboards (l): Will display the leaderboards as of the current time in the championship\nquit (q): Will quit the program and all data will be lost\nhelp (h): Will take you to this menu\n");
         break;
+    default:
+        printf("Invalid Command\n");
     }
     return tolower(command1);
 }
@@ -580,9 +594,160 @@ team* dummyFactory() {
 
 void strnLower(char* str) {
     int length = strlen(str);
-    for (int i=0; i<length; i++) {
+    str[0] = toupper(str[0]);
+    for (int i=1; i<length; i++) {
         str[i] = tolower(str[i]);
     }
 }
 
+double calcMidWeight(team* Team) {
+    double MiddleWeight = 0;
+    if (Team == NULL) {
+        return 0;
+    } else {
+        MiddleWeight = ((Team -> players[4].dribble) + (Team -> players[4].pass)  + (Team -> players[4].Overall) + ((Team -> players[4].defend)+(Team -> players[4].physique)+(Team -> players[4].shoot))/3)/4;
+        for (int i=6; i<9; i=i+2) {
+            MiddleWeight = MiddleWeight + ((Team -> players[i].dribble) + (Team -> players[i].pass) + (Team -> players[i].Overall)  + ((Team -> players[i].defend) + (Team -> players[i].physique) +  (Team -> players[i].shoot))/3)/4;
+        }
+        return MiddleWeight/4;
+    }
+}
+
+double calcAttackWeight(team* Team) {
+    double AttackersWeight = 0;
+    int indx1 = 0;
+    int indx2 = 0;
+    int AttackersSample[] = {7, 5, 7, 9, 7, 9, 5, 8, 6};
+    indx1 = unweightedRNG(0,8);
+    do {
+        indx2 = unweightedRNG(0,8);
+    } while (indx1 == indx2);
+
+    AttackersWeight = ((Team -> players[indx1].pace) + (Team -> players[indx1].dribble) + (Team -> players[indx1].shoot)  + (Team -> players[indx1].Overall) + ((Team -> players[indx1].pass) + (Team -> players[indx1].physique))/2)/5;
+    AttackersWeight = AttackersWeight + ((Team -> players[indx1].pace) + (Team -> players[indx1].dribble) + (Team -> players[indx1].shoot)  + (Team -> players[indx1].Overall) + ((Team -> players[indx1].pass) + (Team -> players[indx1].physique))/2)/5;
+
+    return AttackersWeight/2;
+}
+
+double calcDefenderWeight(team* Team) {
+    double DefenderWeight;
+    for (int i=0; i<4; i++) {
+        DefenderWeight = DefenderWeight + ((Team -> players[i].pace) + (Team -> players[i].defend) + (Team -> players[i].physique)  + (Team -> players[i].Overall))/4;
+    }
+    return DefenderWeight/4;
+}
+
+int processAttack(int Attack, int Defense) {
+    int Coin = unweightedRNG(-Defense,Attack);
+    if (Coin >= 0.5*Attack) {
+        return 2; // absolute score
+    } else if (Coin >= 0) {
+        return 1; // goalkeeper 1v1
+    } else if (Coin >= -0.75*Defense) {
+        return 0; // normal rebuttal
+    } else {
+        return -1; // counter attack !!!
+    }
+}
+
+void simulate(team* Team1, team* Team2) {
+    int encounterNum;
+    int encounter = 0;
+    int MiddleWeight1 = ceil(calcMidWeight(Team1));
+    int MiddleWeight2 = ceil(calcMidWeight(Team2));
+    int AttackWeight;
+    int DefenseWeight;
+    int Goals1 = 0;
+    int Goals2 = 0;
+    // sign of the encounter (+) : Team1 | (-) : Team2
+    int coin;
+    int isInCounterAttack = 0;
+    int result;
+    encounterNum = abs(ceil(Team1->weight-Team2->weight)) + unweightedRNG(1,3);
+    while (encounter<encounterNum) {
+        if (!isInCounterAttack) {
+            coin = unweightedRNG(-ceil((Team2->weight+MiddleWeight2)/2),ceil((Team1->weight+MiddleWeight1)/2));
+        } else {
+            coin = (-1)*coin;
+        }
+        if (coin<0) { // Team 2 -> Team 1 
+            if (!isInCounterAttack) {
+                AttackWeight = ceil(calcAttackWeight(Team2));
+                DefenseWeight = ceil(calcDefenderWeight(Team1));
+            } else {
+                AttackWeight = ceil(calcAttackWeight(Team2)) + 3;
+                DefenseWeight = ceil(calcDefenderWeight(Team1)/2);
+                isInCounterAttack = 0;
+            }
+            printf("Team %s is Attacking Team %s with %d power and they're facing a defense of magnitude %d\n",Team2->name,Team1->name,AttackWeight,DefenseWeight);
+            result = processAttack(AttackWeight,DefenseWeight);
+            switch (result) {
+            case 2:
+                printf("GOALL!!!\n");
+                Goals2++;
+                Team2->goalsScored++;
+                Team1->goalsConceded++;
+                encounter++;
+                break;
+            case 1:
+                printf("Goalkeeper 1v1\n");
+                coin = unweightedRNG(-ceil((Team1->goalkeeper.Overall)/3),AttackWeight);
+                if (coin > 0) {
+                    Goals2++;
+                    Team2->goalsScored++;
+                    Team1->goalsConceded++;
+                }
+                encounter++;
+                break;
+            case 0:
+                printf("Defended\n");
+                encounter++;
+                break;
+            case -1:
+                printf("Counter Attack\n");
+                isInCounterAttack = 1;
+                break;
+            }
+        } else { // Team1 -> Team2
+            if (!isInCounterAttack) {
+                AttackWeight = ceil(calcAttackWeight(Team1));
+                DefenseWeight = ceil(calcDefenderWeight(Team2));
+            } else {
+                AttackWeight = ceil(calcAttackWeight(Team1)) + 3;
+                DefenseWeight = ceil(calcDefenderWeight(Team2)/2);
+                isInCounterAttack = 0;
+            }
+            printf("Team %s is Attacking Team %s with %d power and they're facing a defense of magnitude %d\n",Team1->name,Team2->name,AttackWeight,DefenseWeight);
+            result = processAttack(AttackWeight,DefenseWeight);
+            switch (result) {
+            case 2:
+                printf("GOALL!!!\n");
+                Goals1++;
+                Team1->goalsScored++;
+                Team2->goalsConceded++;
+                encounter++;
+                break;
+            case 1:
+                printf("Goalkeeper 1v1\n");
+                coin = unweightedRNG(-ceil((Team1->goalkeeper.Overall)/3),AttackWeight);
+                if (coin > 0) {
+                    Goals1++;
+                    Team1->goalsScored++;
+                    Team2->goalsConceded++;
+                }
+                encounter++;
+                break;
+            case 0:
+                printf("Defended\n");
+                encounter++;
+                break;
+            case -1:
+                printf("Counter Attack\n");
+                isInCounterAttack = 1;
+                break;
+            }
+        }
+    }
+    printf("The score is : %s\t%d-%d\t%s\n",Team1->name,Goals1,Goals2,Team2->name);
+}
 // other functions - END
