@@ -594,7 +594,7 @@ team* dummyFactory() {
 
 void strnLower(char* str) {
     int length = strlen(str);
-    str[0] = toupper(str[0]);
+    str[0]=toupper(str[0]);
     for (int i=1; i<length; i++) {
         str[i] = tolower(str[i]);
     }
