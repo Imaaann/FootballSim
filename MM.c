@@ -26,7 +26,7 @@ void teamfight(char* teams[], int numTeams) {
 
 int main() {
     int wait;
-    char* teams[] = {"Team1", "Team2", "Team3", "Team4", "Team5"};
+    char* teams[] = {"TeamA", "TeamB", "TeamC", "TeamD", "TeamE" ,"TeamF" ,"TeamG" ,"TeamH" ,"TeamI" ,"TeamJ" ,"TeamK" ,"TeamL" ,"TeamM" ,"TeamN" ,"TeamO" ,"TeamP" ,"TeamQ" ,"TeamR" ,"TeamS" ,"TeamT"};
 	int numTeams = sizeof(teams) / sizeof(teams[0]);
 	teamfight(teams, numTeams);
 

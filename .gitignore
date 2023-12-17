@@ -57,3 +57,4 @@ dkms.conf
 *.layout
 *.cbp
 /.vscode
+stash.c

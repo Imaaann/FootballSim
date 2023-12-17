@@ -41,7 +41,10 @@
     typedef struct team{ // ~1108 bytes
         char name[MAX_NAME];
         int pts;
-        float weight;
+        int weight;
+        int AttckW;
+        int DefW;
+        int MidW;
         int wins;
         int defeats;
         int goalsScored;
@@ -54,15 +57,14 @@
     team Dummy; // Dummy Team :)
 
     //Other functions
-    double calcWeight(team* Team);
+    void* calcWeight(team* Team);
     void printArr(team* Arr[], int n);
     int unweightedRNG(int min,int max);
     team* dummyFactory();
     void strnLower(char* str);
     void simulate(team* Team1, team* Team2);
-    double calcMidWeight(team* Team);
-    double calcAttackWeight(team* Team);
-    int processAttack(int Attack, int Defense);
+    int weightedRNG(int min, int max);
+    int processAttack(team* TeamAttck, team* TeamDef, int Advantage);
 
     //hashTable related functions
     void initHashTable();
@@ -118,7 +120,7 @@ void printHashTable() {
             printf("\t%i\t-",i);
             team* tmp = hash_Table[i];
             while (tmp != NULL) {
-                printf("%s (Weight: %f) -", tmp -> name, tmp -> weight);
+                printf("%s (Weight: %d) -", tmp -> name, tmp -> weight);
                 tmp = tmp -> next;
             }
             printf("\n");
@@ -247,7 +249,7 @@ void handleNewGame() {
 
     for (int i=0;i<numTeams;i++) {
         Teams[i].pts = 0;
-        Teams[i].weight = calcWeight(&Teams[i]);
+        calcWeight(&Teams[i]);
         hashTableInsert(&Teams[i]);
     }
 
@@ -258,7 +260,10 @@ void handleNewGame() {
 
 void* handleNext() {
     int nextCommand;
-    team* teamArr[numTeams+5];
+    team* teamArr[numTeams+1];
+    for (int i=0 ; i<numTeams+1;i++) {
+        teamArr[i] = NULL;
+    }
     hashTableCopy(teamArr);
     if (numTeams % 2 != 0) {
     teamArr[numTeams] = dummyFactory();
@@ -271,11 +276,15 @@ void* handleNext() {
         for (int i = 0; i < numTeams / 2; i++) {
             team* team1 = teamArr[i];
             team* team2 = teamArr[numTeams - 1 - i];
-            if (strncmp(team1->name,"Dummy",MAX_NAME) != 0 && strncmp(team2->name,"Dummy",MAX_NAME)) {
+            if (strncmp(team1->name,"Dummy",MAX_NAME) != 0 && strncmp(team2->name,"Dummy",MAX_NAME) != 0) {
+                printf("==========\n");
                 printf("%s vs %s\n", team1->name, team2->name);
+                printf("==========\n");
                 simulate(team1,team2);
                 // gameplay starts here
             }
+            team1 = NULL;
+            team2 = NULL;
         }
         team* temp = teamArr[1];
         for (int i = 1; i < numTeams - 1; i++) {
@@ -544,22 +553,23 @@ int getNextCommand() {
 
 // Other functions -- START
 
-double calcWeight(team* Team) {
+void* calcWeight(team* Team) {
     if (Team == NULL) {
-        return 0;
+        return NULL;
     } else {
-        double Weight;
+        int Weight = 0;
         // PartialWeight Cus the equation would be TOO LONG
-        double DefWeight = 0;
-        double CMDWeight = 0;
-        double MiddleWeight = 0;
-        double AttackerWeight = 0;
+        int DefWeight = 0;
+        int CMDWeight = 0;
+        int MiddleWeight = 0;
+        int AttackerWeight = 0;
 
+        DefWeight = Team->goalkeeper.Overall;
         for (int i=0; i<4; i++) {
             DefWeight = DefWeight + ((Team -> players[i].pace) + (Team -> players[i].defend) + (Team -> players[i].physique)  + (Team -> players[i].Overall))/4;
         }
         
-        CMDWeight = ((Team -> players[4].dribble) + (Team -> players[4].pass)  + (Team -> players[4].Overall) + ((Team -> players[4].defend)+(Team -> players[4].physique)+(Team -> players[4].shoot))/3)/4;
+        MiddleWeight = ((Team -> players[4].dribble) + (Team -> players[4].pass)  + (Team -> players[4].Overall) + ((Team -> players[4].defend)+(Team -> players[4].physique)+(Team -> players[4].shoot))/3)/4;
         // the middle players numbers are 8 and 10 
         for (int i=6; i<9; i=i+2) {
             MiddleWeight = MiddleWeight + ((Team -> players[i].dribble) + (Team -> players[i].pass) + (Team -> players[i].Overall)  + ((Team -> players[i].defend) + (Team -> players[i].physique) +  (Team -> players[i].shoot))/3)/4;
@@ -569,9 +579,14 @@ double calcWeight(team* Team) {
             AttackerWeight = AttackerWeight + ((Team -> players[i].pace) + (Team -> players[i].dribble) + (Team -> players[i].shoot)  + (Team -> players[i].Overall) + ((Team -> players[i].pass) + (Team -> players[i].physique))/2)/5;
         }
 
-        Weight = (DefWeight + CMDWeight + MiddleWeight + AttackerWeight + (Team -> goalkeeper.Overall))/11;
-        
-        return Weight;
+        // Filling the team
+        Team->AttckW = AttackerWeight/3;
+        Team->DefW = DefWeight/5;
+        Team->MidW = MiddleWeight/3;
+
+        Weight = (DefWeight + MiddleWeight + AttackerWeight)/11;
+        Team->weight = Weight;
+
     }
 }
 
@@ -589,6 +604,31 @@ int unweightedRNG(int min,int max) {
 
 team* dummyFactory() {
     strncpy(Dummy.name,"Dummy",MAX_NAME);
+    Dummy.defeats = 0;
+    Dummy.pts = 0;
+    Dummy.goalsConceded = 0;
+    Dummy.goalsScored = 0;
+    Dummy.next = NULL;
+    Dummy.weight = 0.0;
+    Dummy.wins = 0;
+    strncpy(Dummy.goalkeeper.name, "Dummy Goalkeeper", MAX_NAME);
+    Dummy.goalkeeper.div = 0;
+    Dummy.goalkeeper.hand = 0;
+    Dummy.goalkeeper.kick = 0;
+    Dummy.goalkeeper.position = 0;
+    Dummy.goalkeeper.reflex = 0;
+    Dummy.goalkeeper.speed = 0;
+    Dummy.goalkeeper.Overall = 0;
+    for (int i=0 ; i<10; i++) {
+        strncpy(Dummy.players[i].name, "Dummy Player", MAX_NAME);
+        Dummy.players[i].pace = 0;
+        Dummy.players[i].pass = 0;
+        Dummy.players[i].physique = 0;
+        Dummy.players[i].defend = 0;
+        Dummy.players[i].dribble = 0;
+        Dummy.players[i].shoot = 0;
+        Dummy.players[i].Overall = 0;
+    }
     return &Dummy;
 }
 
@@ -600,154 +640,135 @@ void strnLower(char* str) {
     }
 }
 
-double calcMidWeight(team* Team) {
-    double MiddleWeight = 0;
-    if (Team == NULL) {
-        return 0;
-    } else {
-        MiddleWeight = ((Team -> players[4].dribble) + (Team -> players[4].pass)  + (Team -> players[4].Overall) + ((Team -> players[4].defend)+(Team -> players[4].physique)+(Team -> players[4].shoot))/3)/4;
-        for (int i=6; i<9; i=i+2) {
-            MiddleWeight = MiddleWeight + ((Team -> players[i].dribble) + (Team -> players[i].pass) + (Team -> players[i].Overall)  + ((Team -> players[i].defend) + (Team -> players[i].physique) +  (Team -> players[i].shoot))/3)/4;
-        }
-        return MiddleWeight/4;
-    }
-}
-
-double calcAttackWeight(team* Team) {
-    double AttackersWeight = 0;
-    int indx1 = 0;
-    int indx2 = 0;
-    int AttackersSample[] = {7, 5, 7, 9, 7, 9, 5, 8, 6};
-    indx1 = unweightedRNG(0,8);
-    do {
-        indx2 = unweightedRNG(0,8);
-    } while (indx1 == indx2);
-
-    AttackersWeight = ((Team -> players[indx1].pace) + (Team -> players[indx1].dribble) + (Team -> players[indx1].shoot)  + (Team -> players[indx1].Overall) + ((Team -> players[indx1].pass) + (Team -> players[indx1].physique))/2)/5;
-    AttackersWeight = AttackersWeight + ((Team -> players[indx1].pace) + (Team -> players[indx1].dribble) + (Team -> players[indx1].shoot)  + (Team -> players[indx1].Overall) + ((Team -> players[indx1].pass) + (Team -> players[indx1].physique))/2)/5;
-
-    return AttackersWeight/2;
-}
-
-double calcDefenderWeight(team* Team) {
-    double DefenderWeight;
-    for (int i=0; i<4; i++) {
-        DefenderWeight = DefenderWeight + ((Team -> players[i].pace) + (Team -> players[i].defend) + (Team -> players[i].physique)  + (Team -> players[i].Overall))/4;
-    }
-    return DefenderWeight/4;
-}
-
-int processAttack(int Attack, int Defense) {
-    int Coin = unweightedRNG(-Defense,Attack);
-    if (Coin >= 0.5*Attack) {
-        return 2; // absolute score
-    } else if (Coin >= 0) {
-        return 1; // goalkeeper 1v1
-    } else if (Coin >= -0.75*Defense) {
-        return 0; // normal rebuttal
-    } else {
-        return -1; // counter attack !!!
-    }
-}
-
 void simulate(team* Team1, team* Team2) {
-    int encounterNum;
-    int encounter = 0;
-    int MiddleWeight1 = ceil(calcMidWeight(Team1));
-    int MiddleWeight2 = ceil(calcMidWeight(Team2));
-    int AttackWeight;
-    int DefenseWeight;
-    int Goals1 = 0;
-    int Goals2 = 0;
-    // sign of the encounter (+) : Team1 | (-) : Team2
+    // getting the number of encounters
+    int w1,w2;
+    w1 = (Team1->weight)/1;
+    w2 = (Team2->weight)/1;
+    int encounterNum = abs(w1-w2) + unweightedRNG(1,3);
+    int E=0;
+    
+    int isInCA = 0;
     int coin;
-    int isInCounterAttack = 0;
-    int result;
-    encounterNum = abs(ceil(Team1->weight-Team2->weight)) + unweightedRNG(1,3);
-    while (encounter<encounterNum) {
-        if (!isInCounterAttack) {
-            coin = unweightedRNG(-ceil((Team2->weight+MiddleWeight2)/2),ceil((Team1->weight+MiddleWeight1)/2));
+    int goalKeeperR;
+    int r;
+    int G1,G2;
+    int Mw1 = Team1->MidW;
+    int Mw2 = Team2->MidW;
+    while(E<encounterNum) {
+        if (!isInCA) {
+            coin = weightedRNG(w1+Mw1,w2+Mw2);
         } else {
             coin = (-1)*coin;
+            isInCA = 0;
         }
-        if (coin<0) { // Team 2 -> Team 1 
-            if (!isInCounterAttack) {
-                AttackWeight = ceil(calcAttackWeight(Team2));
-                DefenseWeight = ceil(calcDefenderWeight(Team1));
+        if (coin == 1) { // Team2 is Attacking
+            printf("!! %s is attacking %s\n",Team2->name,Team1->name);
+            if (!isInCA) {
+                r = processAttack(Team2,Team1,0);
             } else {
-                AttackWeight = ceil(calcAttackWeight(Team2)) + 3;
-                DefenseWeight = ceil(calcDefenderWeight(Team1)/2);
-                isInCounterAttack = 0;
+                r = processAttack(Team2,Team1,5);
             }
-            printf("Team %s is Attacking Team %s with %d power and they're facing a defense of magnitude %d\n",Team2->name,Team1->name,AttackWeight,DefenseWeight);
-            result = processAttack(AttackWeight,DefenseWeight);
-            switch (result) {
-            case 2:
-                printf("GOALL!!!\n");
-                Goals2++;
-                Team2->goalsScored++;
-                Team1->goalsConceded++;
-                encounter++;
-                break;
-            case 1:
-                printf("Goalkeeper 1v1\n");
-                coin = unweightedRNG(-ceil((Team1->goalkeeper.Overall)/3),AttackWeight);
-                if (coin > 0) {
-                    Goals2++;
-                    Team2->goalsScored++;
-                    Team1->goalsConceded++;
-                }
-                encounter++;
-                break;
-            case 0:
-                printf("Defended\n");
-                encounter++;
-                break;
-            case -1:
-                printf("Counter Attack\n");
-                isInCounterAttack = 1;
-                break;
+            switch (r) {
+                case 3:
+                    G2++;
+                    Team2->goalsScored += 1;
+                    Team1->goalsConceded += 1;
+                    E++;
+                    break;
+                case 2:
+                    G2++;
+                    Team2->goalsScored += 1;
+                    Team1->goalsConceded += 1;
+                    E++;
+                    break;
+                case 1:
+                    E++;
+                    break;
+                case 0:
+                    E++;
+                    break;
+                case -1:
+                    isInCA = 1;
+                    break;
             }
-        } else { // Team1 -> Team2
-            if (!isInCounterAttack) {
-                AttackWeight = ceil(calcAttackWeight(Team1));
-                DefenseWeight = ceil(calcDefenderWeight(Team2));
+        } else {
+            printf("!! %s is attacking %s\n",Team2->name,Team1->name);
+            if (!isInCA) {
+                r = processAttack(Team1,Team2,0);
             } else {
-                AttackWeight = ceil(calcAttackWeight(Team1)) + 3;
-                DefenseWeight = ceil(calcDefenderWeight(Team2)/2);
-                isInCounterAttack = 0;
+                r = processAttack(Team1,Team2,5);
             }
-            printf("Team %s is Attacking Team %s with %d power and they're facing a defense of magnitude %d\n",Team1->name,Team2->name,AttackWeight,DefenseWeight);
-            result = processAttack(AttackWeight,DefenseWeight);
-            switch (result) {
-            case 2:
-                printf("GOALL!!!\n");
-                Goals1++;
-                Team1->goalsScored++;
-                Team2->goalsConceded++;
-                encounter++;
-                break;
-            case 1:
-                printf("Goalkeeper 1v1\n");
-                coin = unweightedRNG(-ceil((Team1->goalkeeper.Overall)/3),AttackWeight);
-                if (coin > 0) {
-                    Goals1++;
-                    Team1->goalsScored++;
-                    Team2->goalsConceded++;
-                }
-                encounter++;
-                break;
-            case 0:
-                printf("Defended\n");
-                encounter++;
-                break;
-            case -1:
-                printf("Counter Attack\n");
-                isInCounterAttack = 1;
-                break;
+            switch (r) {
+                case 3:
+                    G1++;
+                    Team1->goalsScored += 1;
+                    Team2->goalsConceded += 1;
+                    E++;
+                    break;
+                case 2:
+                    G1++;
+                    Team1->goalsScored += 1;
+                    Team2->goalsConceded += 1;
+                    E++;
+                    break;
+                case 1:
+                    E++;
+                    break;
+                case 0:
+                    E++;
+                    break;
+                case -1:
+                    isInCA = 1;
+                    break;
             }
         }
     }
-    printf("The score is : %s\t%d-%d\t%s\n",Team1->name,Goals1,Goals2,Team2->name);
+    
+}
+
+int processAttack(team* TeamAttck, team* TeamDef, int Advantage) {
+    int gk = 0;
+    
+    int wA = TeamAttck->AttckW + Advantage;
+    int wD = TeamDef->DefW;
+
+    wA = (wA < 0) ? 0 : wA;
+    wD = (wD < 0) ? 0 : wD;
+
+  
+    int result = unweightedRNG(-wD,wA);
+
+    if (result >= 0.5*wA) {
+        // Attack succeeded
+        printf("W-A: %d\nW-D: %d\nS: Direct Goal\n", wA, wD);
+        return 3; // Direct Goal
+    } else if (result >= 0) {
+        // Attack failed, check for goalkeeper or counter attack
+        gk = weightedRNG(TeamDef->goalkeeper.Overall / 2,wA);
+        if (gk == 1) {
+            printf("W-A: %d\nW-D: %d\nS: Goalkeeper 1v1 Success\n", wA, wD);
+            return 2; // Goalkeeper 1v1 Success
+        } else {
+            // Goalkeeper 1v1 Fail
+            printf("W-A: %d\nW-D: %d\nS: Goalkeeper 1v1 Fail\n", wA, wD);
+            return 1;
+        }
+    } else if (result >= 0.75*(-wD)) {
+        printf("W-A: %d\nW-D: %d\nS: Direct Defense\n", wA, wD);
+        return 0;
+    } else {
+        printf("W-A: %d\nW-D: %d\nS: Counter Attack\n", wA, wD);
+        return -1;
+    }
+}
+
+int weightedRNG(int min, int max) {
+    int coin = unweightedRNG(-min,max);
+    if (coin >= 0) {
+        return 1;
+    } else {
+        return -1;
+    }
 }
 // other functions - END
