@@ -1,0 +1,17 @@
+Major changes:
+- Added a basic gameplay loop:
+=> handleNext() now shows you the name of teams that shall fight each round
+=> User can chose to progress to the next round,save the round to a file or show the leaderboards as of the round
+=> User choses the nextCommand through the getNextCommand() func and the switch case terminal on line 274
+====================================================================================================================
+
+New functions/important tools:
+- Added stringToLower function
+- Added A game stage verifier (isInGame boolean variable)
+
+Bug Fixes:
+- Made user input for team names always be lowercase
+- Fixed Teams not starting out with 0 points
+
+Other:
+- Changed the name of the command "forward" to "begin" and its acces letter is now 'b'
