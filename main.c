@@ -64,7 +64,7 @@
     void strnLower(char* str);
     void simulate(team* Team1, team* Team2);
     int weightedRNG(int min, int max);
-    int processAttack(team* TeamAttck, team* TeamDef, int Advantage);
+    int processAttack(team* TeamAttck, team* TeamDef, float Atck_Advantage, float Def_Advantage);
 
     //hashTable related functions
     void initHashTable();
@@ -278,7 +278,7 @@ void* handleNext() {
             team* team2 = teamArr[numTeams - 1 - i];
             if (strncmp(team1->name,"Dummy",MAX_NAME) != 0 && strncmp(team2->name,"Dummy",MAX_NAME) != 0) {
                 printf("==========\n");
-                printf("%s vs %s\n", team1->name, team2->name);
+                printf("%s (pts : %d) vs %s (pts : %d)\n", team1->name, team1->pts,team2->name,team2->pts);
                 printf("==========\n");
                 simulate(team1,team2);
                 // gameplay starts here
@@ -305,6 +305,9 @@ void* handleNext() {
             roundNum++;
             case 2:
             // handleSave
+            roundNum++;
+            case 3:
+            printHashTable();
             roundNum++;
             case -1:
             return NULL;
@@ -540,10 +543,12 @@ int getNextCommand() {
             return 1;
             case 's':
             return 2;
+            case 'p':
+            return 3;
             case 'q':
             return -1;
             default:
-            printf("There is 3 commands:\n1- 'y' send you to the next round \n2- 'l' shows you the leaderboards \n3- 's' saves this round to a log file\n4- 'q' quits the simulation\n");
+            printf("There is 3 commands:\n1- 'y' send you to the next round \n2- 'l' shows you the leaderboards \n3- 's' saves this round to a log file\n4- 'q' quits the simulation\n5- 'p' prints the hashtables and shows the points (tmp cmd) ");
         }
     } while (1);
 }
@@ -655,19 +660,21 @@ void simulate(team* Team1, team* Team2) {
     int G1,G2;
     int Mw1 = Team1->MidW;
     int Mw2 = Team2->MidW;
+    G1 = 0;
+    G2 = 0;
     while(E<encounterNum) {
         if (!isInCA) {
-            coin = weightedRNG(w1+Mw1,w2+Mw2);
+            coin = unweightedRNG(-(w1+Mw1),w2+Mw2);
         } else {
             coin = (-1)*coin;
-            isInCA = 0;
         }
-        if (coin == 1) { // Team2 is Attacking
+        if (coin >= 0) { // Team2 is Attacking
             printf("!! %s is attacking %s\n",Team2->name,Team1->name);
             if (!isInCA) {
-                r = processAttack(Team2,Team1,0);
+                r = processAttack(Team2,Team1,1,1);
             } else {
-                r = processAttack(Team2,Team1,5);
+                r = processAttack(Team2,Team1,1.25,0.75);
+                isInCA = 0;
             }
             switch (r) {
                 case 3:
@@ -688,16 +695,17 @@ void simulate(team* Team1, team* Team2) {
                 case 0:
                     E++;
                     break;
-                case -1:
+                case 4:
                     isInCA = 1;
                     break;
             }
         } else {
-            printf("!! %s is attacking %s\n",Team2->name,Team1->name);
+            printf("!! %s is attacking %s\n",Team1->name,Team2->name);
             if (!isInCA) {
-                r = processAttack(Team1,Team2,0);
+                r = processAttack(Team1,Team2,1,1);
             } else {
-                r = processAttack(Team1,Team2,5);
+                r = processAttack(Team1,Team2,1.25,0.75);
+                isInCA = 0;
             }
             switch (r) {
                 case 3:
@@ -718,20 +726,32 @@ void simulate(team* Team1, team* Team2) {
                 case 0:
                     E++;
                     break;
-                case -1:
+                case 4:
                     isInCA = 1;
                     break;
             }
         }
     }
-    
+    printf("\nScore: %s\t%d-%d\t%s\n",Team1->name,G1,G2,Team2->name);
+    if (G1 > G2) {
+        Team1->pts += 3;
+        Team1->wins += 1;
+        Team2->defeats += 1;
+    } else if (G1 < G2) {
+        Team2->pts += 3;
+        Team2->wins += 1;
+        Team1->defeats += 1;
+    } else {
+        Team1->pts += 1;
+        Team2->pts += 1;
+    }
 }
 
-int processAttack(team* TeamAttck, team* TeamDef, int Advantage) {
+int processAttack(team* TeamAttck, team* TeamDef, float Atck_Advantage, float Def_Advantage) {
     int gk = 0;
     
-    int wA = TeamAttck->AttckW + Advantage;
-    int wD = TeamDef->DefW;
+    int wA = (TeamAttck->AttckW) * Atck_Advantage;
+    int wD = (TeamDef->DefW) *  Def_Advantage;
 
     wA = (wA < 0) ? 0 : wA;
     wD = (wD < 0) ? 0 : wD;
@@ -744,14 +764,13 @@ int processAttack(team* TeamAttck, team* TeamDef, int Advantage) {
         printf("W-A: %d\nW-D: %d\nS: Direct Goal\n", wA, wD);
         return 3; // Direct Goal
     } else if (result >= 0) {
-        // Attack failed, check for goalkeeper or counter attack
         gk = weightedRNG(TeamDef->goalkeeper.Overall / 2,wA);
         if (gk == 1) {
-            printf("W-A: %d\nW-D: %d\nS: Goalkeeper 1v1 Success\n", wA, wD);
+            printf("W-A: %d\nW-D: %d\nS: Goalkeeper 1v1 Attacker's Score\n", wA, wD);
             return 2; // Goalkeeper 1v1 Success
         } else {
             // Goalkeeper 1v1 Fail
-            printf("W-A: %d\nW-D: %d\nS: Goalkeeper 1v1 Fail\n", wA, wD);
+            printf("W-A: %d\nW-D: %d\nS: Goalkeeper 1v1 Clutch\n", wA, wD);
             return 1;
         }
     } else if (result >= 0.75*(-wD)) {
@@ -759,7 +778,7 @@ int processAttack(team* TeamAttck, team* TeamDef, int Advantage) {
         return 0;
     } else {
         printf("W-A: %d\nW-D: %d\nS: Counter Attack\n", wA, wD);
-        return -1;
+        return 4;
     }
 }
 
