@@ -269,6 +269,13 @@ void* handleNext() {
     teamArr[numTeams] = dummyFactory();
     numTeams++;
     }
+
+    printf("Do you want to use a commentator for the matches?????\n");
+    int commentator;
+    do {
+        scanf(" %c",commentator);
+    } while (commentator != 'y' && commentator != 'n');
+
     int rounds = numTeams - 1;
     int roundNum = 1;
     while(roundNum <= rounds) {
