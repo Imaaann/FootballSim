@@ -5,6 +5,7 @@
 #include <time.h>
 #include <ctype.h>
 #include <math.h>
+#include<windows.h>
 
 #define MAX_NAME 64
 #define MAX_TABLE_SIZE 64
@@ -59,6 +60,7 @@
     //Other functions
     void* calcWeight(team* Team);
     void printArr(team* Arr[], int n);
+    void say(char *str);
     int unweightedRNG(int min,int max);
     team* dummyFactory();
     void strnLower(char* str);
@@ -271,10 +273,14 @@ void* handleNext() {
     }
 
     printf("Do you want to use a commentator for the matches?????\n");
-    int commentator;
+    int commentator = 0;
+    char ch ;
     do {
-        scanf(" %c",commentator);
-    } while (commentator != 'y' && commentator != 'n');
+        scanf(" %c",&ch);
+        if(ch =='y'){
+            commentator=1;
+        }
+    } while (ch != 'y' && ch != 'n');
 
     int rounds = numTeams - 1;
     int roundNum = 1;
@@ -287,6 +293,54 @@ void* handleNext() {
                 printf("==========\n");
                 printf("%s (pts : %d) vs %s (pts : %d)\n", team1->name, team1->pts,team2->name,team2->pts);
                 printf("==========\n");
+                if (commentator){
+                    int dice ;
+                    dice = rand()%6;
+                    switch (dice)
+                    {
+                    case 0:
+                        say("Ladies and gentlemen, brace yourselves for a clash of titans as the mighty ");
+                        say(team1->name);
+                        say("square off against their fierce rivals,");
+                        say(team2->name);
+                        say(", in a showdown that promises to set the pitch ablaze! The stakes are high, the atmosphere is electric, and both teams are hungry for glory.Get ready for 90 minutes of heart-stopping action as these football juggernauts go head-to-head in a battle that will be etched into the annals of sporting history!");
+                        break;
+                    case 1 :
+                        say("Greetings, sports aficionados! Tonight, we are privileged to witness a football extravaganza as ");
+                        say(team1->name);
+                        say("and");
+                        say(team2->name);
+                        say("lock horns in a contest that transcends mere competition.This is a clash of ideologies, a duel of skill and strategy that will unfold on the sacred green canvas. With the roar of the crowd as their soundtrack, these teams are set to dazzle and amaze.Buckle up, folks, because this is more than a game; it's a spectacle, a symphony of soccer, and it starts right here, right now!");
+                        break;
+                    case 2 :
+                        say("Get ready for a football spectacle that defies expectation! In one corner, we have the formidable force of ");
+                        say(team1->name);
+                        say(", known for their lightning-quick attacks and impenetrable defense.In the other corner, the challengers, ");
+                        say(team2->name);
+                        say(", bring a mix of flair and tenacity that keeps fans on the edge of their seats. The stage is set for an epic encounter, where each pass, every dribble, and every shot will be a brushstroke on the canvas of greatness.This is not just a match; it's a collision of footballing philosophies, and you're about to witness the magic unfold!");
+                    case 3:
+                        say("Ladies and gentlemen, welcome to the epic showdown at the heart of football fervor! The stage is set, the floodlights are ablaze, and the air is charged with anticipation. Brace yourselves for a match that promises to redefine sporting brilliance as ");
+                        say(team1->name);
+                        say("and ");
+                        say(team2->name);
+                        say(" prepare to go head-to-head. This is not just a game; it's a spectacle, a clash of titans that will echo through the annals of football history. Get ready for 90 minutes of breathtaking skill, heart-stopping moments, and a crescendo of cheers that will reverberate across the cosmos! The atmosphere is electric, and the stakes are high as these two formidable teams enter the arena, ready to leave it all on the pitch. Let the battle commence!");
+                        break;
+                    case 4:
+                        say("Greetings, football aficionados! Prepare to be catapulted into a realm where passion meets precision, and athleticism dances with artistry. Today, we bear witness to a celestial convergence of talent on the hallowed pitch as ");
+                        say(team1->name);
+                        say(" and ");
+                        say(team2->name);
+                        say(" take center stage. It's more than a match; it's a symphony of strategy, a ballet of finesse, and a drama that unfolds with each touch of the ball. Buckle up as these gladiators of the beautiful game, representing their respective colors and legacies, collide, creating a spectacle that transcends the ordinary and ascends to the extraordinary. The anticipation is palpable, and the energy is electric as we embark on this exhilarating journey with <team1> and <team2>. Get ready for a football experience like no other!");
+                        break;
+                    case 5:
+                    say("Welcome, sports enthusiasts, to a kaleidoscope of skill and spectacle! The stadium is pulsating with the rhythmic heartbeat of thousands of fans, and the players from ");
+                    say(team1->name);
+                    say(" and ");
+                    say(team2->name);
+                    say(" are ready to embark on a journey that will leave an indelible mark on the canvas of footballing greatness. This is not just a game; it's a tapestry woven with moments of brilliance, a canvas painted with the strokes of determination and flair from these two powerhouse teams. As the whistle blows, immerse yourselves in the theater of dreams, where heroes are born, and legends are etched in the lore of the beautiful game! The stage is set for <team1> and <team2> to showcase their skills and leave an enduring imprint on the hearts of football fans around the world. Let the symphony of sport unfold!");
+                    break;
+                    }
+                }
                 simulate(team1,team2);
                 // gameplay starts here
             }
@@ -608,6 +662,15 @@ void printArr(team* Arr[], int n) {
         printf("%s ,", Arr[i] -> name );
     }
     printf("%s]", Arr[n-1] -> name);
+}
+
+void say(char *str)
+{
+    int i = 0 ;
+    for(int i =0 ; str[i]!='\0';i++){
+        printf("%c",str[i]);
+        Sleep(75);
+    }
 }
 
 int unweightedRNG(int min,int max) {
