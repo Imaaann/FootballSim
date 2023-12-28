@@ -5,9 +5,11 @@
 #include <time.h>
 #include <ctype.h>
 #include <math.h>
+#include<windows.h>
 
 #define MAX_NAME 64
 #define MAX_TABLE_SIZE 64
+#define SAY_DELAY 1
 
     char* positions[] ={"Right Back","Left Back","Center Back","Center Back","Central Defensive Midfielder","Right Winger","Right Centre Midfielder","Striker","Left Centre Midfielder","Left Winger"};
 
@@ -59,6 +61,7 @@
     //Other functions
     void* calcWeight(team* Team);
     void printArr(team* Arr[], int n);
+    void say(char *str);
     int unweightedRNG(int min,int max);
     team* dummyFactory();
     void strnLower(char* str);
@@ -76,13 +79,12 @@
 
 
     //user related functions
-    void handleNewGame();
+    void handleNewGame(team* teamArr[]);
     int randomStatInput();
     void manualInput(team Teams[]);
     void systimaticInput(team Teams[]);
     void fairInput(team Teams[]);
-    void* handleNext();
-    char getCommand();
+    void* handleNext(team* teamArr[]);
     int getNextCommand();
 
 
@@ -91,19 +93,23 @@
     team * hash_Table[MAX_TABLE_SIZE];
     int numTeams;
     int isInGame;
+    int hasCommentator;
     char leagueName[MAX_NAME];
-    char CH;
+    char trash; 
 
 int main() {
     isInGame = 0;
+    hasCommentator = 0;
     srand(time(NULL));
-    char command;
-    printf("============\nWelcome to the football simulator ('h' to open help menu)\n============\n");
-    do {
-    command = getCommand();
-    CH = getchar();
-    } while(command !=  'q');
-
+    printf("========================\nWelcome to the football simulator hope everything goes well\n========================\n");
+    system("Pause");
+    printf("Enter the number of teams to play:\n");
+    scanf("%d",&numTeams);
+    team* teamArray[numTeams + 2];
+    handleNewGame(teamArray);
+    printArr(teamArray, numTeams);
+    system("Pause");
+    handleNext(teamArray);
 
     system("Pause");
     return 0;
@@ -129,24 +135,6 @@ void printHashTable() {
     printf("End of hash Table Print\n");
 }
 
-// should only be called after handleNewGame() will return an empty array if called before 
-void hashTableCopy(team* teamArr[]) {
-    int j=0;
-    team* tmp = NULL;
-    for (int i = 0; i<MAX_TABLE_SIZE; i++) {
-        if (hash_Table[i] != NULL) {
-            team* tmp = hash_Table[i];
-            while (tmp != NULL) {
-                if (j<= numTeams) {
-                teamArr[j] = tmp;
-                j++;
-                }
-                tmp = tmp->next;
-            }
-            tmp = NULL;
-        }
-    }
-}
 
 unsigned int hash(char* name) {
     int strLength = strnlen(name, MAX_NAME);
@@ -210,9 +198,10 @@ void initHashTable() {
 
 // Command Function -- START 
 
-void handleNewGame() {
+void handleNewGame(team* teamArr[]) {
     char name[MAX_NAME];
     int trash;
+    team Teams[numTeams+1];
     initHashTable();
 
     printf("Enter the title of the league\n");
@@ -220,10 +209,6 @@ void handleNewGame() {
     scanf("%[^\n]s",name);
     strncpy(leagueName,name,64);
     isInGame = 1;
-
-    printf("Enter the number of teams to play:\n");
-    scanf("%d",&numTeams);
-    team Teams[numTeams+1];
 
     for (int i=0; i<numTeams;i++) {
         printf("Enter the name for the %d team\n",i+1);
@@ -246,29 +231,34 @@ void handleNewGame() {
         break;
     }
 
+    printf("Do you want to use a commentator for your game (is slow)");
+    char Comm;
+    scanf(" %c",&Comm);
+    if (Comm == 'y') {
+        hasCommentator = 1;
+    }
+
 
     for (int i=0;i<numTeams;i++) {
         Teams[i].pts = 0;
         calcWeight(&Teams[i]);
         hashTableInsert(&Teams[i]);
+        teamArr[i] = &Teams[i];
     }
 
     printf("\n");
     system("cls");
+    isInGame = 1;
     printHashTable();
 }
 
-void* handleNext() {
+void* handleNext(team* teamArr[]) { 
     int nextCommand;
-    team* teamArr[numTeams+1];
-    for (int i=0 ; i<numTeams+1;i++) {
-        teamArr[i] = NULL;
-    }
-    hashTableCopy(teamArr);
     if (numTeams % 2 != 0) {
     teamArr[numTeams] = dummyFactory();
     numTeams++;
     }
+
     int rounds = numTeams - 1;
     int roundNum = 1;
     while(roundNum <= rounds) {
@@ -281,7 +271,6 @@ void* handleNext() {
                 printf("%s (pts : %d) vs %s (pts : %d)\n", team1->name, team1->pts,team2->name,team2->pts);
                 printf("==========\n");
                 simulate(team1,team2);
-                // gameplay starts here
             }
             team1 = NULL;
             team2 = NULL;
@@ -293,9 +282,15 @@ void* handleNext() {
         teamArr[numTeams - 1] = temp;
 
         if (roundNum != rounds) {
-        nextCommand = getNextCommand();
-        CH = getchar();
+        printf("=====================================================\n");
+        printf("do u want to progress to next round ? ('h' for help):\n");
+        printf("=====================================================\n");
         }
+        if (roundNum == 1) {
+            printf("There is 3 commands:\n1- 'y' send you to the next round \n2- 'l' shows you the leaderboards \n3- 's' saves this round to a log file\n4- 'q' quits the simulation\n5- 'p' prints the hashtables and shows the points (tmp cmd) ");
+        }
+
+        nextCommand = getNextCommand();
         switch (nextCommand) {
             case 0:
             roundNum++;
@@ -497,44 +492,12 @@ void fairInput(team Teams[]) {
     }
 }
 
-char getCommand() {
-    char command;
-    printf("Enter a command\n");
-    scanf("%s",&command);
-    char command1 = (char) command; 
-    switch (tolower(command1)) {
-    case 'n':
-        handleNewGame();
-        break;
-    case 'b':
-        handleNext();
-        break;
-    case 'l':
-        printf("\nYou have printed the leaderboards as of day %d\n",0);
-        break;
-    case 'q':
-        printf("\nThanks for using my application!\n");
-        break;
-    case 'h' :
-        printf("=========================================================================================");
-        printf("\nWelcome to the football simulator help page\nHere is the list of the possible commands:\n");
-        printf("=========================================================================================\n");
-        printf("new (n): Will start a new game and all data about the previous games will get ovverriden\nbegin (b): Will start the simulation and move it to the next day\nleaderboards (l): Will display the leaderboards as of the current time in the championship\nquit (q): Will quit the program and all data will be lost\nhelp (h): Will take you to this menu\n");
-        break;
-    default:
-        printf("Invalid Command\n");
-    }
-    return tolower(command1);
-}
-
 int getNextCommand() {
     char r;
     char r1;
-    printf("=====================================================\n");
-    printf("do u want to progress to next round ? ('h' for help):\n");
-    printf("=====================================================\n");
     do {
         scanf("%s",&r);
+        trash = getchar();
         char r1 = (char) r; 
         switch (r1) {
             case 'y':
@@ -600,7 +563,16 @@ void printArr(team* Arr[], int n) {
     for (int i=0; i<(n-1); i++) {
         printf("%s ,", Arr[i] -> name );
     }
-    printf("%s]", Arr[n-1] -> name);
+    printf("%s]\n", Arr[n-1] -> name);
+}
+
+void say(char *str)
+{
+    int i = 0 ;
+    for(int i =0 ; str[i]!='\0';i++){
+        printf("%c",str[i]);
+        Sleep(SAY_DELAY);
+    }
 }
 
 int unweightedRNG(int min,int max) {
@@ -790,4 +762,146 @@ int weightedRNG(int min, int max) {
         return -1;
     }
 }
+
+void CommentateOn(team* team1, team* team2, int result) {
+    /*
+    Using the same codes as the processAttack:
+    -1 : Introduction
+    0 : Direct defense from team2
+    1 : Goalkeeper clutch from team2
+    2 : Goalkeeper sucess from team1
+    3 : Direct Goal from team1
+    4 : Counter Attack from team2
+    */
+    int dice ;
+    dice = rand()%6;
+    switch (result) {
+        case -1:
+            switch (dice) {
+                case 0:
+                    say("Ladies and gentlemen, brace yourselves for a clash of titans as the mighty ");
+                    say(team1->name);
+                    say("square off against their fierce rivals,");
+                    say(team2->name);
+                    say(", in a showdown that promises to set the pitch ablaze! The stakes are high, the atmosphere is electric, and both teams are hungry for glory.Get ready for 90 minutes of heart-stopping action as these football juggernauts go head-to-head in a battle that will be etched into the annals of sporting history!");
+                    break;
+                case 1 :
+                    say("Greetings, sports aficionados! Tonight, we are privileged to witness a football extravaganza as ");
+                    say(team1->name);
+                    say("and");
+                    say(team2->name);
+                    say("lock horns in a contest that transcends mere competition.This is a clash of ideologies, a duel of skill and strategy that will unfold on the sacred green canvas. With the roar of the crowd as their soundtrack, these teams are set to dazzle and amaze.Buckle up, folks, because this is more than a game; it's a spectacle, a symphony of soccer, and it starts right here, right now!");
+                    break;
+                case 2 :
+                    say("Get ready for a football spectacle that defies expectation! In one corner, we have the formidable force of ");
+                    say(team1->name);
+                    say(", known for their lightning-quick attacks and impenetrable defense.In the other corner, the challengers, ");
+                    say(team2->name);
+                    say(", bring a mix of flair and tenacity that keeps fans on the edge of their seats. The stage is set for an epic encounter, where each pass, every dribble, and every shot will be a brushstroke on the canvas of greatness.This is not just a match; it's a collision of footballing philosophies, and you're about to witness the magic unfold!");
+                case 3:
+                    say("Ladies and gentlemen, welcome to the epic showdown at the heart of football fervor! The stage is set, the floodlights are ablaze, and the air is charged with anticipation. Brace yourselves for a match that promises to redefine sporting brilliance as ");
+                    say(team1->name);
+                    say("and ");
+                    say(team2->name);
+                    say(" prepare to go head-to-head. This is not just a game; it's a spectacle, a clash of titans that will echo through the annals of football history. Get ready for 90 minutes of breathtaking skill, heart-stopping moments, and a crescendo of cheers that will reverberate across the cosmos! The atmosphere is electric, and the stakes are high as these two formidable teams enter the arena, ready to leave it all on the pitch. Let the battle commence!");
+                    break;
+                case 4:
+                    say("Greetings, football aficionados! Prepare to be catapulted into a realm where passion meets precision, and athleticism dances with artistry. Today, we bear witness to a celestial convergence of talent on the hallowed pitch as ");
+                    say(team1->name);
+                    say(" and ");
+                    say(team2->name);
+                    say(" take center stage. It's more than a match; it's a symphony of strategy, a ballet of finesse, and a drama that unfolds with each touch of the ball. Buckle up as these gladiators of the beautiful game, representing their respective colors and legacies, collide, creating a spectacle that transcends the ordinary and ascends to the extraordinary. The anticipation is palpable, and the energy is electric as we embark on this exhilarating journey with <team1> and <team2>. Get ready for a football experience like no other!");
+                    break;
+                case 5:
+                    say("Welcome, sports enthusiasts, to a kaleidoscope of skill and spectacle! The stadium is pulsating with the rhythmic heartbeat of thousands of fans, and the players from ");
+                    say(team1->name);
+                    say(" and ");
+                    say(team2->name);
+                    say(" are ready to embark on a journey that will leave an indelible mark on the canvas of footballing greatness. This is not just a game; it's a tapestry woven with moments of brilliance, a canvas painted with the strokes of determination and flair from these two powerhouse teams. As the whistle blows, immerse yourselves in the theater of dreams, where heroes are born, and legends are etched in the lore of the beautiful game! The stage is set for <team1> and <team2> to showcase their skills and leave an enduring imprint on the hearts of football fans around the world. Let the symphony of sport unfold!");
+                break;
+            }
+        break;
+        case 0:
+            switch (dice) {
+                case 0:
+                break;
+                case 1:
+                break;
+                case 2:
+                break;
+                case 3:
+                break;
+                case 4:
+                break;
+                case 5:
+                break;
+            }
+        break;
+        case 1:
+            switch (dice) {
+                case 0:
+                break;
+                case 1:
+                break;
+                case 2:
+                break;
+                case 3:
+                break;
+                case 4:
+                break;
+                case 5:
+                break;
+            }
+        break;
+        case 2:
+            switch (dice) {
+                case 0:
+                break;
+                case 1:
+                break;
+                case 2:
+                break;
+                case 3:
+                break;
+                case 4:
+                break;
+                case 5:
+                break;
+            }
+        break;
+        case 3:
+            switch (dice) {
+                case 0:
+                break;
+                case 1:
+                break;
+                case 2:
+                break;
+                case 3:
+                break;
+                case 4:
+                break;
+                case 5:
+                break;
+            }
+        break;
+        case 4:
+            switch (dice) {
+                case 0:
+                break;
+                case 1:
+                break;
+                case 2:
+                break;
+                case 3:
+                break;
+                case 4:
+                break;
+                case 5:
+                break;
+            }
+        break;
+    }
+}
+
 // other functions - END
