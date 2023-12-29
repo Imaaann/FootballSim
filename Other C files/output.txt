@@ -1,0 +1,8 @@
+This will be captured in output.txt
+This will be captured in output.txt
+This will be captured in output.txt
+This will be captured in output.txt
+This will be captured in output.txt
+This will be captured in output.txt
+This will be printed to the terminal and written to output.txt.
+This will be printed to the terminal and written to output.txt.

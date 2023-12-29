@@ -10,7 +10,7 @@
     #define MAX_TEAMS 64
     #define SAY_DELAY 10
 
-    typedef struct team{ 
+    typedef struct team{
         char name[MAX_NAME];
         int pts;
         int AttckW;
@@ -22,7 +22,7 @@
         int goalsConceded;
         int rank;
         struct team* next;
-    } team; 
+    } team;
 
     typedef struct {
         team* GoldMedal;
@@ -37,6 +37,8 @@
     char leagueName[MAX_NAME];
     int numTeams;
     int hasCommentator;
+    FILE* file;
+    int isSaving;
 
     //Color Control
     void resetCLR();
@@ -50,7 +52,7 @@
     void green();
     void yellowNRM();
     void redNRM();
-    
+
     //Functions
     void drawCup();
     void CommentateOn(team* team1, team* team2, int result);
@@ -61,7 +63,7 @@
     void printTeam(team* team);
     void strnLower(char* str);
     team* hashTableLookup(char* name);
-    void bubbleSort(team arr[], int n); // for GD 
+    void bubbleSort(team arr[], int n); // for GD
     void quickSort(team arr[], int low, int high); // for pts
     int partition(team arr[], int low, int high);
     void swap(team* a, team* b);
@@ -74,11 +76,13 @@
     void initTeamArray(team* teamArray[], int n);
     void printTable(team Teams[], int n);
     void newGame();
-    podium leader();
+    podium leader(int status);
     void TrophyCeremony(podium FinalPodium);
 
 int main() {
+    isSaving = 0;
     podium FinalPod;
+    char C;
     srand(time(NULL));
     printf("========================\nWelcome to the football simulator hope everything goes well\n========================\n");
     system("Pause");
@@ -100,10 +104,10 @@ int main() {
     ballin();
 
     //Sorting the winners and what not and getting the top 3
-    FinalPod = leader();
+    FinalPod = leader(1);
     system("Pause");
     system("cls");
-    
+
     //Trophy Ceremony
     drawCup();
     TrophyCeremony(FinalPod);
@@ -149,7 +153,7 @@ void newGame() {
                 Teams[i].MidW = 50;
                 Teams[i].DefW = 50;
             }
-        break; 
+        break;
         case 'r':
             for (int i=0; i<numTeams; i++) {
                 Teams[i].AttckW = unweightedRNG(40,99);
@@ -218,8 +222,55 @@ void* ballin() {
 
     // Start of the main event loop
     int rounds = numTeams - 1;
-    int roundNum = 1;
+    int roundNum = 0;
     while(roundNum <= rounds) {
+
+
+        //Showing Help Menu if on 1st Itteration
+        if (roundNum == 0) {
+        printf("\v");
+        printf("Next Command Control Panel:\n");
+        printf("(n) : Continues to the next round\n");
+        printf("(l) : Shows and updates the leaderboards\n");
+        printf("(p) : Prints specific info about a team\n");
+        printf("(s) : Saves the next round to a file\n");
+        printf("(q) : Quit The simulation\n");
+        }
+
+        //Fetching next Command
+        int paused = 1;
+        while (paused) {
+            yellow();
+            printf("\vEnter the next command\n");
+            resetCLR();
+            do {
+                nextCommand = getchar();
+                nextCommand = tolower(nextCommand);
+            } while (nextCommand != 'n' && nextCommand != 'l' && nextCommand != 'p' && nextCommand != 's' && nextCommand !=  'q');
+
+            switch (nextCommand) {
+                case 'n':
+                roundNum++;
+                paused = 0;
+                system("Pause");
+                system("cls");
+
+                break;
+                case 'l':
+                leader(1);
+                break;
+                case 'p':
+                requestTeam();
+                break;
+                case 's':
+                save(roundNum+1);
+                break;
+                case 'q':
+                return NULL;
+                break;
+            }
+        }
+
         red();
         printf("Round %d:\n", roundNum);
         resetCLR();
@@ -234,6 +285,12 @@ void* ballin() {
                 if (hasCommentator) {
                     CommentateOn(team1,team2,-1);
                 }
+
+                if (isSaving && file != NULL) {
+                    fprintf(file,"%s vs %s\n",team1->name,team2->name);
+                }
+
+
                 simulate(team1,team2);
             }
         }
@@ -243,54 +300,17 @@ void* ballin() {
         }
         globalTeams[numTeams - 1] = tempTeam;
 
-        //Showing Help Menu if on 1st Itteration
-        if (roundNum == 1) {
-        printf("Next Command Control Panel:\n");
-        printf("(n) : Continues to the next round\n");
-        printf("(l) : Shows and updates the leaderboards\n");
-        printf("(p) : Prints specific info about a team\n");
-        printf("(s) : Save the current round to a file\n");
-        printf("(q) : Quit The simulation\n");
+        if(isSaving && file != NULL) {
+            leader(0);
+            isSaving = 0;
+            fclose(file);
         }
 
-        //Fetching next Command
-        int paused = 1;
-        while (paused) {
-            yellow();
-            printf("Enter the next command\n");
-            resetCLR();
-            do {
-                nextCommand = getchar();
-                nextCommand = tolower(nextCommand);
-            } while (nextCommand != 'n' && nextCommand != 'l' && nextCommand != 'p' && nextCommand != 's' && nextCommand !=  'q');
-
-            switch (nextCommand) {
-                case 'n':
-                roundNum++;
-                paused = 0;
-                system("Pause");
-                break;
-                case 'l':
-                leader();
-                break;
-                case 'p':
-                requestTeam();
-                break;
-                case 's':
-                // Save()
-                break;
-                case 'q':
-                return NULL;
-                break;
-            }
-        }
-
-        system("cls");
     }
 
 }
 
-podium leader() {
+podium leader(int status) {
     team sortedTeams[numTeams+1];
     //pruning the array from globalTeams
     int rnk;
@@ -304,7 +324,11 @@ podium leader() {
     bubbleSort(sortedTeams,numTeams);
 
     // printing the leaderboard
-    printTable(sortedTeams,numTeams);
+    if (status) {
+        printTable(sortedTeams,numTeams);
+    } else {
+        printTableToFile(file,sortedTeams,numTeams);
+    }
 
     //assigning the new ranks
     team* tmp = NULL;
@@ -356,6 +380,22 @@ void printTeam(team* teamPtr) {
     printf(" +------------------------------------------------------+\n");
 }
 
+void save(int round) {
+    char roundStr[MAX_NAME];
+    sprintf(roundStr,"%d",round);
+
+    char fileName[MAX_NAME];
+
+    strncpy(fileName,"logs/",MAX_NAME);
+    strcat(fileName,leagueName);
+    strcat(fileName,"_round_");
+    strcat(fileName,roundStr);
+    strcat(fileName,".txt");
+
+    file = fopen(fileName,"w");
+    isSaving = 1;
+}
+
 void printTable(team Teams[], int n) {
     printf("+-------------------------------------------------------------+\n");
     printf("|                          LEADERBOARD                        |\n");
@@ -363,7 +403,7 @@ void printTable(team Teams[], int n) {
     printf("| Rank | Team Name           | Points | Wins | Losses | GD   |\n");
     printf("|------+---------------------+--------+------+--------+------|\n");
 
-    
+
     for (int i = 0; i < n; i++) {
         if (strncmp(Teams[i].name,"Dummy",MAX_NAME) != 0) {
             int goalDifference = Teams[i].goalsScored - Teams[i].goalsConceded;
@@ -387,6 +427,34 @@ void printTable(team Teams[], int n) {
 
 
     printf("+-------------------------------------------------------------+\n");
+}
+
+void printTableToFile(FILE* outputFile, team Teams[], int n) {
+    // Check if the output file is provided
+    if (outputFile == NULL) {
+        fprintf(stderr, "Error: Output file is not provided.\n");
+        return;
+    }
+
+    // Print to the file
+    fprintf(outputFile, "+-------------------------------------------------------------+\n");
+    fprintf(outputFile, "|                          LEADERBOARD                        |\n");
+    fprintf(outputFile, "+-------------------------------------------------------------+\n");
+    fprintf(outputFile, "| Rank | Team Name           | Points | Wins | Losses | GD   |\n");
+    fprintf(outputFile, "|------+---------------------+--------+------+--------+------|\n");
+
+    for (int i = 0; i < n; i++) {
+        if (strncmp(Teams[i].name, "Dummy", MAX_NAME) != 0) {
+            int goalDifference = Teams[i].goalsScored - Teams[i].goalsConceded;
+            int rankWidth = (i + 1 < 10) ? 2 : 1;
+
+            // Print to the file
+            fprintf(outputFile, "|   %-*d | %-19s | %-6d | %-4d | %-6d | %+4d |\n", rankWidth, i + 1, Teams[i].name, Teams[i].pts, Teams[i].wins, Teams[i].defeats, goalDifference);
+        }
+    }
+
+    // Print to the file
+    fprintf(outputFile, "+-------------------------------------------------------------+\n");
 }
 
 void simulate(team *team1, team *team2) {
@@ -480,7 +548,10 @@ void simulate(team *team1, team *team2) {
         team2->pts += 1;
     }
 
-    printf("Final score: %s\t%d-%d\t%s\n", team1->name, Goals1, Goals2, team2->name);
+    printf("Final score: %s  %d-%d  %s\n", team1->name, Goals1, Goals2, team2->name);
+    if (isSaving && file != NULL) {
+        fprintf(file,"Final score: %s  %d-%d  %s\n", team1->name, Goals1, Goals2, team2->name);
+    }
     if(hasCommentator) {
         system("Pause");
         system("cls");
@@ -541,7 +612,7 @@ void swap(team* a, team* b) {
 
 int partition(team arr[], int low, int high) {
     int pivot = arr[high].pts;
-    int indx = low - 1; 
+    int indx = low - 1;
 
     for (int j = low; j <= high - 1; j++) {
         if (arr[j].pts >= pivot) {
@@ -1002,10 +1073,11 @@ void drawCup() {
     printf("         <)))))))))))");
     redNRM();
     printf("}}}}}}}}}}}[         \n");
+    printf("\v\v\v\v");
     resetCLR();
 }
 
-// colors 
+// colors
 void red() {
   printf("\033[1;31m");
 }
