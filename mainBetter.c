@@ -7,8 +7,8 @@
 
 
     #define MAX_NAME 64
-    #define MAX_TABLE_SIZE 64
-    #define SAY_DELAY 1
+    #define MAX_TEAMS 64
+    #define SAY_DELAY 10
 
     typedef struct team{ 
         char name[MAX_NAME];
@@ -24,11 +24,16 @@
         struct team* next;
     } team; 
 
+    typedef struct {
+        team* GoldMedal;
+        team* SilverMedal;
+        team* BronzeMedal;
+    } podium;
+
 
     // Global Variables
     team Dummy;
-    team globalTeams[MAX_TABLE_SIZE];
-    team* hash_Table[MAX_TABLE_SIZE];
+    team globalTeams[MAX_TEAMS];
     char leagueName[MAX_NAME];
     int numTeams;
     int hasCommentator;
@@ -43,17 +48,13 @@
     void blue();
     void purple();
     void green();
+    void yellowNRM();
+    void redNRM();
     
-    //HashTable Functions
-    void printHashTable();
-    void initHashTable();
-    unsigned int hash(char* name);
-    int hashTableInsert(team *p);
-    team* hashTableLookup(char* name);
-    team* hashTableDelete(char* name);
-
-
     //Functions
+    void drawCup();
+    void CommentateOn(team* team1, team* team2, int result);
+    void say(char *str);
     void printStrArr(char* str);
     team* linearSearchByName(char* targetName);
     void requestTeam();
@@ -73,25 +74,42 @@
     void initTeamArray(team* teamArray[], int n);
     void printTable(team Teams[], int n);
     void newGame();
-    void leader();
+    podium leader();
+    void TrophyCeremony(podium FinalPodium);
 
 int main() {
+    podium FinalPod;
     srand(time(NULL));
-    initHashTable();
     printf("========================\nWelcome to the football simulator hope everything goes well\n========================\n");
     system("Pause");
 
+    //Getting Number of teams
     printf("How many teams do you want in the game : ");
     do {
     scanf("%d",&numTeams);
-    if (numTeams > MAX_TABLE_SIZE) {
+    if (numTeams > MAX_TEAMS) {
         printf("Too many teams, consider lowering it\n");
     }
-    } while (numTeams > MAX_TABLE_SIZE);
+    } while (numTeams > MAX_TEAMS);
+
+    //Setting up the game
     newGame();
     system("cls");
+
+    //Playing the game
     ballin();
 
+    //Sorting the winners and what not and getting the top 3
+    FinalPod = leader();
+    system("Pause");
+    system("cls");
+    
+    //Trophy Ceremony
+    drawCup();
+    TrophyCeremony(FinalPod);
+
+
+    red();
     system("Pause");
     return 0;
 }
@@ -120,6 +138,7 @@ void newGame() {
     printf("How do you want to input data:\n(m): manual input \n(r): random input\n(f): fair input\n");
     do {
         trash = getchar();
+        trash = tolower(trash);
     } while (trash != 'm' && trash != 'r' && trash != 'f');
 
     //Processing the input
@@ -164,6 +183,7 @@ void newGame() {
     printf("Do you want to use a commentator for the game (y/n)\n");
     do {
         trash = getchar();
+        trash = tolower(trash);
     } while (trash != 'y' && trash != 'n');
     if (trash == 'y') {
         hasCommentator = 1;
@@ -189,13 +209,6 @@ void* ballin() {
     // yeah we ballin'
     char nextCommand;
 
-    for (int i=0; i<numTeams;i++) {
-        printf("Team %d: %s --- %p\n", i + 1, globalTeams[i].name, &globalTeams[i]);
-        hashTableInsert(&globalTeams[i]);
-    }
-
-    printHashTable();
-    
     // Forcing Number of teams to be even
     if (numTeams % 2 != 0) {
         globalTeams[numTeams] = dummyFac();
@@ -215,7 +228,12 @@ void* ballin() {
             team* team2 = &(globalTeams[numTeams - 1 - i]);
             if (strncmp(team1->name,"Dummy",MAX_NAME) != 0 && strncmp(team2->name,"Dummy",MAX_NAME) != 0 ) {
                 // event happening
+                blue();
                 printf("%s vs %s\n", team1->name, team2->name);
+                resetCLR();
+                if (hasCommentator) {
+                    CommentateOn(team1,team2,-1);
+                }
                 simulate(team1,team2);
             }
         }
@@ -243,6 +261,7 @@ void* ballin() {
             resetCLR();
             do {
                 nextCommand = getchar();
+                nextCommand = tolower(nextCommand);
             } while (nextCommand != 'n' && nextCommand != 'l' && nextCommand != 'p' && nextCommand != 's' && nextCommand !=  'q');
 
             switch (nextCommand) {
@@ -271,7 +290,7 @@ void* ballin() {
 
 }
 
-void leader() {
+podium leader() {
     team sortedTeams[numTeams+1];
     //pruning the array from globalTeams
     int rnk;
@@ -296,6 +315,13 @@ void leader() {
             tmp->rank = i;
         }
     }
+
+    //returning pointer to the team at the top
+    podium P;
+    P.GoldMedal = linearSearchByName(sortedTeams[0].name);
+    P.SilverMedal = linearSearchByName(sortedTeams[1].name);
+    P.BronzeMedal = linearSearchByName(sortedTeams[2].name);
+    return P;
 }
 
 void requestTeam() {
@@ -311,7 +337,7 @@ void requestTeam() {
     strnLower(buffer);
 
     team* tmp = NULL;
-    tmp = hashTableLookup(buffer);
+    tmp = linearSearchByName(buffer);
     if (tmp != NULL) {
         printTeam(tmp);
     } else {
@@ -396,6 +422,9 @@ void simulate(team *team1, team *team2) {
                 result = processAttack(*team1, *team2, 0.75, 1.25);
                 CounterAttack = 0;
             }
+            if (hasCommentator) {
+                CommentateOn(team2,team1,result);
+            }
             switch (result) {
                 case 2:
                     Goals2++;
@@ -417,6 +446,9 @@ void simulate(team *team1, team *team2) {
             } else {
                 result = processAttack(*team2, *team1, 0.75, 1.25);
                 CounterAttack = 0;
+            }
+            if (hasCommentator) {
+                CommentateOn(team1,team2,result);
             }
             switch (result) {
                 case 2:
@@ -449,6 +481,10 @@ void simulate(team *team1, team *team2) {
     }
 
     printf("Final score: %s\t%d-%d\t%s\n", team1->name, Goals1, Goals2, team2->name);
+    if(hasCommentator) {
+        system("Pause");
+        system("cls");
+    }
 }
 
 void initTeamArray(team* teamArray[], int n) {
@@ -566,88 +602,407 @@ void printStrArr(char* str) {
     printf("%c]\n", str[len-1]);
 }
 
-//HashTable Functions
-void printHashTable() {
-    printf("New Hash Table Print\n");
-    for (int i = 0; i<MAX_TABLE_SIZE; i++) {
-        if (hash_Table[i] == NULL) {
-            printf("\t%i\t----\n",i);
-        } else {
-            printf("\t%i\t-",i);
-            team* tmp = hash_Table[i];
-            while (tmp != NULL) {
-                printf("%s (pointer: %p) -", tmp -> name, tmp);
-                tmp = tmp -> next;
+void CommentateOn(team* team1, team* team2, int result) {
+    /*
+    Using the same codes as the processAttack:
+    -1 : Introduction
+    0 : Counter Attack from team2
+    1 : Direct defense from team2
+    2 : Direct Goal from team1
+    3 : Trophy Party
+    */
+    int dice ;
+    dice = rand()%6;
+    say("---");
+    switch (result) {
+        case -1:
+            switch (dice) {
+                case 0:
+                    say("Welcome, football enthusiasts, to a clash that promises to be nothing short of extraordinary! ");
+                    say(team1->name);
+                    say(" and ");
+                    say(team2->name);
+                    say(" are set to ignite the pitch with their unparalleled skill and determination. Get ready for a spectacle that will keep you on the edge of your seats!");
+                    break;
+                case 1:
+                    say("Ladies and gentlemen, brace yourselves for an epic showdown as the titans of football, ");
+                    say(team1->name);
+                    say(" and ");
+                    say(team2->name);
+                    say(", prepare to go head-to-head. The stage is set, the players are primed, and the atmosphere is electric. It's time for 90 minutes of heart-pounding action!");
+                    break;
+                case 2:
+                    say("Greetings, sports aficionados! Get ready for a football extravaganza as ");
+                    say(team1->name);
+                    say(" and ");
+                    say(team2->name);
+                    say(" grace the field with their presence. This is more than a match; it's a collision of footballing ideologies, a duel that promises skill, passion, and unforgettable moments!");
+                    break;
+                case 3:
+                    say("A warm welcome to all football lovers tuning in for this epic encounter between ");
+                    say(team1->name);
+                    say(" and ");
+                    say(team2->name);
+                    say(". The anticipation is palpable, and the stage is set for a riveting match that will leave an indelible mark on the beautiful game!");
+                    break;
+                case 4:
+                    say("Get ready for a football spectacle like no other as we witness the clash between ");
+                    say(team1->name);
+                    say(" and ");
+                    say(team2->name);
+                    say(". The players are ready, the fans are eager, and the excitement is contagious. It's time to kick off a match that promises skill, strategy, and pure footballing magic!");
+                    break;
+                case 5:
+                    say("Football fans, rejoice! We're about to witness a showdown of epic proportions as ");
+                    say(team1->name);
+                    say(" and ");
+                    say(team2->name);
+                    say(" take center stage. The energy is high, the stakes are higher, and the thrill of the game is about to unfold. Stay tuned for a footballing extravaganza!");
+                    break;
             }
-            printf("\n");
-        }
+        break;
+        case 0:
+            switch (dice) {
+                case 0:
+                    say("In a stunning turn of events, ");
+                    say(team2->name);
+                    say(" launches a swift counterattack against ");
+                    say(team1->name);
+                    say(", catching everyone off guard. The momentum has shifted, and the underdogs are making their move!");
+                break;
+                case 1:
+                    say("Hold your breath, folks! A sudden burst of energy from ");
+                    say(team2->name);
+                    say(" as they counterattack against ");
+                    say(team1->name);
+                    say(". The tables have turned, and the dynamics of the game are in for a thrilling twist!");
+                break;
+                case 2:
+                    say("Watch out! ");
+                    say(team2->name);
+                    say(" seizes the opportunity to counterattack against ");
+                    say(team1->name);
+                    say(", unleashing a flurry of strategic moves that could change the course of this match!");
+                break;
+                case 3:
+                    say("A moment of brilliance from ");
+                    say(team2->name);
+                    say(" as they swiftly counterattack against ");
+                    say(team1->name);
+                    say(". The game takes an unexpected turn, and the excitement levels are off the charts!");
+                break;
+                case 4:
+                    say("Hold on tight! ");
+                    say(team2->name);
+                    say(" executes a perfectly timed counterattack against ");
+                    say(team1->name);
+                    say(", leaving their opponents scrambling to defend. The stadium erupts in cheers as the plot thickens!");
+                break;
+                case 5:
+                    say("Get ready for fireworks! ");
+                    say(team2->name);
+                    say(" pulls off a lightning-fast counterattack against ");
+                    say(team1->name);
+                    say(", showcasing their prowess on the pitch. The crowd roars as the intensity reaches a whole new level!");
+                break;
+            }
+        break;
+        case 1:
+            switch (dice) {
+                case 0:
+                    say("A relentless assault from ");
+                    say(team1->name);
+                    say(" puts pressure on ");
+                    say(team2->name);
+                    say(". However, the defense holds firm, thwarting every attempt to breach their goal. A stellar display of resilience!");
+                    break;
+                case 1:
+                    say(team1->name);
+                    say(" launches a fierce attack against ");
+                    say(team2->name);
+                    say(", testing their defensive prowess. Yet, the solid defense stands tall, denying any passage to the net. What a defensive masterclass!");
+                    break;
+                case 2:
+                    say("In a high-stakes moment, ");
+                    say(team1->name);
+                    say(" aggressively attacks ");
+                    say(team2->name);
+                    say("'s goal. But the defenders stand like a wall, repelling every shot and securing their territory!");
+                    break;
+                case 3:
+                    say("A relentless offensive from ");
+                    say(team1->name);
+                    say(" puts ");
+                    say(team2->name);
+                    say(" on the back foot. Remarkably, the defenders intercept every move, denying any chance for the ball to reach the net.");
+                    break;
+                case 4:
+                    say("The stadium holds its breath as ");
+                    say(team1->name);
+                    say(" intensifies the attack against ");
+                    say(team2->name);
+                    say(". The defenders, however, showcase exceptional skills, ensuring the ball doesn't breach their fortress. A defensive spectacle!");
+                    break;
+                case 5:
+                    say(team1->name);
+                    say("'s onslaught against ");
+                    say(team2->name);
+                    say(" is met with an ironclad defense. The defenders thwart every attempt, ensuring the ball remains far from their net. Defensive brilliance on display!");
+                    break;
+            }
+        break;
+        case 2:
+            switch (dice) {
+                case 0:
+                    say("A masterful offensive from ");
+                    say(team1->name);
+                    say(" as they break through the defense of ");
+                    say(team2->name);
+                    say(". The ball finds the back of the net, and the crowd erupts in jubilation!");
+                    break;
+                case 1:
+                    say(team1->name);
+                    say(" orchestrates a brilliant attack, leaving ");
+                    say(team2->name);
+                    say(" scrambling to defend. The ball sails past the goalkeeper, and the net ripples. Goal for ");
+                    say(team1->name);
+                    say("!");
+                    break;
+                case 2:
+                    say("In a dazzling display of skill, ");
+                    say(team1->name);
+                    say(" outmaneuvers the defense of ");
+                    say(team2->name);
+                    say(". The shot is perfectly placed, and the scoreboard reflects the goal!");
+                    break;
+                case 3:
+                    say(team1->name);
+                    say("'s relentless assault pays off as they breach the defense of ");
+                    say(team2->name);
+                    say(". The crowd goes wild as the ball hits the mark. Goal for ");
+                    say(team1->name);
+                    say("!");
+                    break;
+                case 4:
+                    say("An electrifying moment as ");
+                    say(team1->name);
+                    say(" executes a clinical attack against ");
+                    say(team2->name);
+                    say(". The defense is left helpless, and the ball finds its way into the net. Spectacular goal!");
+                    break;
+                case 5:
+                    say("Cheers reverberate through the stadium as ");
+                    say(team1->name);
+                    say(" outplays the defense of ");
+                    say(team2->name);
+                    say(". The ball is sent into the goal with precision. Goal for ");
+                    say(team1->name);
+                    say("!");
+                    break;
+            }
+        break;
     }
-    printf("End of hash Table Print\n");
+    printf("\n");
 }
 
-unsigned int hash(char* name) {
-    int strLength = strnlen(name, MAX_NAME);
-    unsigned int hashValue = 0;
-    for (int i=0; i<strLength; i++) {
-        hashValue += name[i];
-        hashValue = ( hashValue * name[i]) % MAX_TABLE_SIZE;
-
+void TrophyCeremony(podium FinalPodium) {
+    int dice = rand()%6;
+    switch (dice) {
+        case 0:
+            say("Ladies and gentlemen, a thunderous applause for our champions of the ");
+            say(leagueName);
+            say(" league!");
+            say("As the golden confetti rains down, the triumphant teams stand tall on the podium.");
+            say("Taking the gold medal is ");
+            say(FinalPodium.GoldMedal->name);
+            say(", showcasing exceptional skill and determination.");
+            say("The silver medal goes to ");
+            say(FinalPodium.SilverMedal->name);
+            say(", a team that has displayed remarkable prowess throughout the ");
+            say(leagueName);
+            say(" season.");
+            say("And let's not forget the bronze, claimed by ");
+            say(FinalPodium.BronzeMedal->name);
+            say(", a team that fought valiantly and secured their place among the best.");
+            break;
+        case 1:
+            say("In the spotlight of triumph, the silver medal is awarded to ");
+            say(FinalPodium.SilverMedal->name);
+            say(" in the ");
+            say(leagueName);
+            say(" league!");
+            say("Amidst cheers and applause, they embrace the moment, a shining testament to their skill and dedication.");
+            say("The journey to this podium has been long, but the silver gleams brightly around the necks of ");
+            say(FinalPodium.GoldMedal->name);
+            say(" and ");
+            say(FinalPodium.SilverMedal->name);
+            say("!");
+            say("Meanwhile, the bronze medal finds a worthy recipient in ");
+            say(FinalPodium.BronzeMedal->name);
+            say(", a team that captured hearts with their spirited performance.");
+            break;
+        case 2:
+            say("Bronze, the medal of valor, finds its deserving home with ");
+            say(FinalPodium.BronzeMedal->name);
+            say(" in the ");
+            say(leagueName);
+            say(" league!");
+            say("With a jubilant spirit, they proudly accept the bronze, a symbol of resilience and sportsmanship.");
+            say("Their journey has been a testament to the indomitable spirit that defines champions.");
+            say("Joining them on the podium are ");
+            say(FinalPodium.GoldMedal->name);
+            say(" and ");
+            say(FinalPodium.SilverMedal->name);
+            say(", the gold and silver medalists, respectively, in this incredible display of football excellence.");
+            break;
+        case 3:
+            say("As the stadium echoes with the roar of victory, the coveted gold medal is bestowed upon ");
+            say(FinalPodium.GoldMedal->name);
+            say(" in the ");
+            say(leagueName);
+            say(" league!");
+            say("Their stellar performance has etched them in the annals of footballing greatness.");
+            say("Sharing the podium is ");
+            say(FinalPodium.SilverMedal->name);
+            say(", the silver medalist, who showcased exceptional skills and sportsmanship.");
+            say("Completing the trio of champions is ");
+            say(FinalPodium.BronzeMedal->name);
+            say(", recipient of the bronze, a testament to their tenacity and dedication.");
+            break;
+        case 4:
+            say("A symphony of cheers erupts as ");
+            say(FinalPodium.GoldMedal->name);
+            say(" claims the gold medal in the ");
+            say(leagueName);
+            say(" league!");
+            say("Their journey has been nothing short of extraordinary, marked by moments of brilliance and sheer determination.");
+            say("Standing alongside them on the podium is ");
+            say(FinalPodium.SilverMedal->name);
+            say(", the silver medalist, who contributed to the tournament's spectacle with their skillful play.");
+            say("And let's not forget the bronze medal, proudly worn by ");
+            say(FinalPodium.BronzeMedal->name);
+            say(", a team that captivated the audience with their resilience.");
+            break;
+        case 5:
+            say("A grand salute to our champions of the ");
+            say(leagueName);
+            say(" league!");
+            say("The gold medal finds a worthy home with ");
+            say(FinalPodium.GoldMedal->name);
+            say(", a team that showcased football mastery.");
+            say("On the podium beside them is ");
+            say(FinalPodium.SilverMedal->name);
+            say(", the silver medalist, who added their unique flair to the ");
+            say(leagueName);
+            say(" season.");
+            say("Completing the trio is ");
+            say(FinalPodium.BronzeMedal->name);
+            say(", the bronze medalist, a team that fought with unmatched spirit and determination.");
+            break;
     }
-    return hashValue;
+    printf("\n");
 }
 
-int hashTableInsert(team *p) {
-    if (p == NULL) {
-        return 0;
+void say(char *str) {
+    int i = 0 ;
+    for(int i =0 ; str[i]!='\0';i++){
+        printf("%c",str[i]);
+        Sleep(SAY_DELAY);
     }
-    int index = hash(p -> name);
-    p -> next = hash_Table[index];
-    hash_Table[index] = p;
-    return 1;
-} 
-
-team* hashTableLookup(char* name) {
-    int index = hash(name);
-    team *tmp = hash_Table[index];
-
-    while (tmp != NULL) {
-        team tmpTeam;
-        memcpy(&tmpTeam, tmp, sizeof(team));
-
-        if (strncmp(tmpTeam.name, name, MAX_NAME) == 0) {
-            return tmp;
-        }
-
-        tmp = tmp->next;
-    }
-
-    return NULL;
 }
 
-team* hashTableDelete(char* name) {
-    int index = hash(name);
-    team* tmp = hash_Table[index];
-    team* prv = NULL;
-    while (tmp != NULL && strncmp(tmp -> name, name, MAX_NAME) != 0) 
-    {
-        prv = tmp;
-        tmp = tmp -> next;
-    }
-    if (tmp == NULL) return NULL;
-    if (prv == NULL) {
-        // delete head of linked list by pushing the next on in the linked list to the first
-        hash_Table[index] = tmp -> next;
-    } else {
-        prv -> next = tmp -> next; // delete node at tmp by pushing the pointers away from it
-    } 
-    return tmp;
-}
-
-void initHashTable() {
-    for (int i = 0; i<MAX_TABLE_SIZE; i++) {
-        hash_Table[i] = NULL;
-    }
-    // table is Empty Yiiipee
+void drawCup() {
+    yellow();
+    printf("      ===============");
+    yellowNRM();
+    printf("***************\n");
+    yellow();
+    printf("        -------------");
+    yellowNRM();
+    printf("============\n");
+    yellow();
+    printf("   ======------------");
+    yellowNRM();
+    printf("============>>>>>>\n");
+    yellow();
+    printf("  =======------------");
+    yellowNRM();
+    printf("============>>>>>>>\n");
+    yellow();
+    printf("   ==    -----------");
+    printf("\033[1;36m>\033[0;36m[");
+    yellowNRM();
+    printf("===========    >>\n");
+    yellow();
+    printf("   ===   ----------");
+    printf("\033[1;36m>>\033[0;36m[");
+    yellowNRM();
+    printf("===========   >>>\n");
+    yellow();
+    printf("    ==   -----------");
+    printf("\033[1;36m>\033[0;36m[");
+    yellowNRM();
+    printf("==========   >>\n");
+    yellow();
+    printf("    ====  ----------");
+    printf("\033[1;36m>\033[0;36m[");
+    yellowNRM();
+    printf("==========  >>>\n");
+    yellow();
+    printf("      === ----------");
+    printf("\033[1;36m>\033[0;36m[");
+    yellowNRM();
+    printf("========== >>>\n");
+    yellow();
+    printf("       ====----------");
+    yellowNRM();
+    printf("==========>>>>\n");
+    yellow();
+    printf("         ==~---------");
+    yellowNRM();
+    printf("=========*>>\n");
+    yellow();
+    printf("            ~--------");
+    yellowNRM();
+    printf("========*\n");
+    yellow();
+    printf("              -------");
+    yellowNRM();
+    printf("=======\n");
+    yellow();
+    printf("                -----");
+    yellowNRM();
+    printf("====~\n");
+    yellow();
+    printf("                 ++++");
+    yellowNRM();
+    printf(">>>^\n");
+    yellow();
+    printf("                 ++++");
+    yellowNRM();
+    printf(">>>>\n");
+    yellow();
+    printf("                 ++++");
+    yellowNRM();
+    printf(">>>>\n");
+    yellow();
+    printf("              -------");
+    yellowNRM();
+    printf("=======\n");
+    yellow();
+    printf("             --------");
+    yellowNRM();
+    printf("========\n");
+    resetCLR();
+    red();
+    printf("         ))))))))))))");
+    redNRM();
+    printf("}}}}}}}}}}}[         \n");
+    red();
+    printf("         <)))))))))))");
+    redNRM();
+    printf("}}}}}}}}}}}[         \n");
+    resetCLR();
 }
 
 // colors 
@@ -677,4 +1032,10 @@ void yellow() {
 }
 void resetCLR() {
   printf("\033[0m");
+}
+void yellowNRM() {
+    printf("\033[0;33m");
+}
+void redNRM() {
+    printf("\033[0;31m");
 }

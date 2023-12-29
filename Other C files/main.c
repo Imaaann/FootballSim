@@ -566,14 +566,7 @@ void printArr(team* Arr[], int n) {
     printf("%s]\n", Arr[n-1] -> name);
 }
 
-void say(char *str)
-{
-    int i = 0 ;
-    for(int i =0 ; str[i]!='\0';i++){
-        printf("%c",str[i]);
-        Sleep(SAY_DELAY);
-    }
-}
+
 
 int unweightedRNG(int min,int max) {
     return ((rand()%(max-min+1))+min);
